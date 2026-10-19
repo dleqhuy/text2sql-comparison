@@ -25,6 +25,13 @@ Formatter: Ruff 0.17.1, khai báo trong nhóm `dev` của `pyproject.toml`.
 | DAIL-SQL | `7df99e15d8916a35711ff13735fd5ee01262c10e` |
 | Spider evaluator | `b7b5b8c890cd30e35427348bb9eb8c6d1350ca7c` |
 
+Các sửa đổi đã được commit riêng:
+
+| Repo | Commit có các sửa đổi dùng trong thí nghiệm |
+|---|---|
+| DIN-SQL | `be08d838ce1cc1a4d465b3f34bb4d493d21cb10a` |
+| DAIL-SQL | `fa1c2a1e38946934858fef5db5e3e22661fee02b` |
+
 Danh sách thư viện đã cài nằm trong [dependencies/](dependencies/).
 Checksum của các tài nguyên và mã phương pháp ở thời điểm chạy nằm trong
 [checksums.sha256](checksums.sha256). Hash dữ liệu nằm trong `data/source.json`.
@@ -47,7 +54,7 @@ Checksum của các tài nguyên và mã phương pháp ở thời điểm chạ
 | DAIL-SQL | 19/20 | 95% |
 
 MAC còn hai lỗi parser do alias cột; câu `dev_0016` chạy được nhưng khác gold.
-13 kiểm thử comparison đã qua. Các test phương pháp đã chạy trước đó: DIN 7, DAIL 3.
+13 kiểm thử comparison đã qua. Test phương pháp: DIN 7, DAIL 3 đều qua.
 
 Điểm cuối nằm trong [summary.csv](../results/summary.csv). Các bản trước chuẩn hóa
 và audit được giữ cục bộ trong `results/archive/`, không đưa vào Git.
