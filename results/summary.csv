@@ -1,0 +1,4 @@
+method,EX,evaluated_examples,empty_predictions
+few_shot,0.8,20,0
+mac_sql,0.85,20,0
+dail_sql,0.95,20,0

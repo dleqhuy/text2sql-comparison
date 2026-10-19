@@ -1,0 +1,10 @@
+00636695dabed6b5f4b8328a16b13e069a2f16591d5efcce57660669c85b121b  downloads/spider.zip
+833f0f5413a33e7fbc98aeddcb80eb0a55b672f67417b8d956ed9c39abe8d26c  downloads/stanford-corenlp.zip
+78c0197b6159d92658e319bc1d72e4c73a9a03dd03815e70e555c5ef05615658  ../DAIL-SQL/.cache/sentence-transformers/sentence-transformers_all-mpnet-base-v2/model.safetensors
+08e06f440b59349788a9123883aa222b45341ee87b74f2f331cb3303a165446c  ../Few-shot-NL2SQL-with-prompting/DIN-SQL.py
+84cfc2b6a3bc53d9bb5b06de2ff2dbae3152ab9123e1bda750d45ec94beec557  ../Few-shot-NL2SQL-with-prompting/response_utils.py
+b011b3451ec1bed907a5e727636da4216ecc848861495ceed1d238269e000ed1  ../DAIL-SQL/ask_llm.py
+526c55f112a132bc590376398a8af4396aaad781f6be600c7e3c75d8d0f3c142  ../DAIL-SQL/data_preprocess.py
+6738eaf3c97a4c71a8e31a964b08c9cbb25a46ea45ad46747e70fdfd7f35a192  ../DAIL-SQL/utils/pretrained_embeddings.py
+745934a44fa4135f5beaf8320b4ddeb2c670a922376d2bc98dd4020c25b2d7f8  ../DAIL-SQL/utils/post_process.py
+3e0be58aa9feabaebf5901727c424941620825bcd6006ac0324d436cd96ee6ab  ../DAIL-SQL/utils/linking_utils/spider_match_utils.py

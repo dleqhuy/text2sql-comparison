@@ -1,0 +1,2 @@
+# Runtime version used for the comparison run
+nltk==3.9.2
