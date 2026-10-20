@@ -12,7 +12,7 @@ uv run --no-project python scripts/run_comparison.py
 ```
 
 Script mặc định dùng toàn bộ 1.034 câu Spider dev, chạy DIN-SQL, MAC-SQL và
-DAIL-SQL theo thứ tự, rồi chuẩn hóa và chấm EX bằng cả Spider lẫn SQLite.
+DAIL-SQL theo thứ tự, rồi chuẩn hóa và chấm SQLite EX.
 Các bước inference gọi endpoint LLM trong `.env`.
 
 ## Chọn lượt chạy
@@ -69,18 +69,18 @@ Các đường dẫn dưới đây tính từ thư mục output:
 |---|---|
 | Output phương pháp và log inference | `raw/` |
 | SQL chuẩn hóa, cùng ID và thứ tự | `predictions/` |
-| Điểm Spider EX | `summary.csv` |
-| Spider EX theo độ khó | `report.md`, `by_difficulty.csv` |
-| Input và log evaluator gốc | `evaluation/` |
-| SQLite EX và báo cáo | `sqlite/summary.csv`, `sqlite/report.md` |
-| Đúng/sai và lỗi SQLite từng câu | `sqlite/evaluation/<method>.details.json` |
+| Điểm SQLite EX | `summary.csv` |
+| EX theo độ khó | `report.md`, `by_difficulty.csv` |
+| Input, log và lệnh chấm SQLite | `evaluation/` |
+| Đúng/sai và lỗi SQLite từng câu | `evaluation/<method>.details.json` |
 
 Input chung gồm `dev.json`, `examples.json`, `tables.json`, `gold.txt`,
 `subset.json` (đủ ID được chọn) và `source.json` (checksum dữ liệu/database).
 Script từ chối input có danh sách ID khác số câu yêu cầu.
 
 Chuẩn hóa bỏ backtick an toàn và comment ngoài literal, giữ giá trị và thứ tự.
-Prediction thiếu vẫn tính sai. Spider evaluator được giữ nguyên.
+Prediction thiếu vẫn tính sai. Mã Spider chỉ phân loại độ khó của gold SQL;
+prediction được thực thi trực tiếp bằng SQLite.
 SQLite chạy query read-only, mặc định giới hạn 10 giây mỗi query, giữ DISTINCT,
 literal và số dòng trùng; cho phép hoán vị cột nhất quán và xét thứ tự khi gold
 có ORDER BY ngoài cùng. UTF-8 lỗi được bỏ qua khi giải mã; lỗi gold làm lượt chấm

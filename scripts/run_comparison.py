@@ -322,34 +322,30 @@ class Comparison:
                     self.output / f"predictions/{method}.jsonl",
                 ]
             )
-        for backend in ("spider", "sqlite"):
-            output = self.output if backend == "spider" else self.output / "sqlite"
-            args = [
-                sys.executable,
-                ROOT / "scripts/evaluate.py",
-                "--execution-backend",
-                backend,
-                "--examples",
-                self.data / "examples.json",
-                "--subset",
-                self.data / "subset.json",
-                "--db",
-                self.source / "database",
-                "--table",
-                self.data / "tables.json",
-                "--summary",
-                output / "summary.csv",
-                "--work-dir",
-                output / "evaluation",
-                "--timeout",
-                "1800",
+        args = [
+            sys.executable,
+            ROOT / "scripts/evaluate.py",
+            "--examples",
+            self.data / "examples.json",
+            "--subset",
+            self.data / "subset.json",
+            "--db",
+            self.source / "database",
+            "--table",
+            self.data / "tables.json",
+            "--summary",
+            self.output / "summary.csv",
+            "--work-dir",
+            self.output / "evaluation",
+            "--timeout",
+            "1800",
+        ]
+        for method in self.args.methods:
+            args += [
+                "--prediction",
+                f"{method}={self.output}/predictions/{method}.jsonl",
             ]
-            for method in self.args.methods:
-                args += [
-                    "--prediction",
-                    f"{method}={self.output}/predictions/{method}.jsonl",
-                ]
-            self.command(args)
+        self.command(args)
 
 
 def main():

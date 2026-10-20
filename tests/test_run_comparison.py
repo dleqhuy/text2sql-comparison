@@ -52,6 +52,8 @@ class ComparisonRunTests(unittest.TestCase):
         plan = output.getvalue()
         self.assertIn("--count 20", plan)
         self.assertEqual(plan.count("--end_index 20"), 2)
+        self.assertEqual(plan.count("scripts/evaluate.py"), 1)
+        self.assertNotIn("--execution-backend", plan)
         self.assertIn(str(self.output / "dail_work/dataset/spider"), plan)
         self.assertIn(
             "--pre_test_result " + str(self.output / "raw/dail_preliminary.txt"), plan
@@ -123,12 +125,13 @@ class ComparisonRunTests(unittest.TestCase):
                 self.args("--count", "20", "--methods", "mac_sql", "--evaluate-only")
             ).run()
         details = json.loads(
-            (self.output / "sqlite/evaluation/mac_sql.details.json").read_text()
+            (self.output / "evaluation/mac_sql.details.json").read_text()
         )
         self.assertEqual(details["evaluated_examples"], 20)
         self.assertEqual(details["correct"], 19)
         self.assertEqual(raw.read_bytes(), before)
         self.assertFalse((self.output / "dail_work").exists())
+        self.assertFalse((self.output / "sqlite").exists())
         with (self.output / "summary.csv").open() as stream:
             score = next(csv.DictReader(stream))
         self.assertEqual(float(score["EX"]), 0.95)

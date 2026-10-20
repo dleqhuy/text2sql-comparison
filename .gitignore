@@ -22,11 +22,6 @@ __pycache__/
 !/results/full_dev/summary.csv
 !/results/full_dev/by_difficulty.csv
 !/results/full_dev/report.md
-!/results/full_dev/sqlite/
-/results/full_dev/sqlite/*
-!/results/full_dev/sqlite/summary.csv
-!/results/full_dev/sqlite/by_difficulty.csv
-!/results/full_dev/sqlite/report.md
 
 # Previous local runs and temporary experiment files
 /.local_archive/

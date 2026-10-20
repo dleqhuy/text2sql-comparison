@@ -12,13 +12,13 @@ uv run --no-project python scripts/run_comparison.py --count 20
 ```
 
 Script chạy cả ba phương pháp trên 20 câu đầu dev (`dev_0000`–`dev_0019`),
-rồi chuẩn hóa và chấm Spider EX, SQLite EX. Các câu đều thuộc `concert_singer`;
+rồi chuẩn hóa và chấm SQLite EX. Các câu đều thuộc `concert_singer`;
 điểm này dùng kiểm tra pipeline, chưa đại diện cho toàn bộ Spider.
 
 - Input: `data/smoke20/`.
 - Kết quả: `results/smoke20/`.
 - Workspace DAIL riêng: `results/smoke20/dail_work/`.
-- Báo cáo: `results/smoke20/report.md`, `results/smoke20/sqlite/report.md`.
+- Báo cáo: `results/smoke20/report.md`.
 
 Chấm lại raw đã có, không gọi model:
 

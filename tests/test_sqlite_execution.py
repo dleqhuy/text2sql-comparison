@@ -131,7 +131,6 @@ class SQLiteExecutionTest(unittest.TestCase):
             report=None,
             python=sys.executable,
             timeout=30,
-            execution_backend="sqlite",
             query_timeout=1,
         )
         evaluate(args)
@@ -149,7 +148,7 @@ class SQLiteExecutionTest(unittest.TestCase):
         previous_summary = args.summary.read_text()
         rows[0]["query"] = "SELECT missing_column FROM items"
         write_json(self.root / "examples.json", rows)
-        with self.assertRaisesRegex(RuntimeError, "sqlite evaluator failed"):
+        with self.assertRaisesRegex(RuntimeError, "SQLite evaluator failed"):
             evaluate(args)
         self.assertEqual(args.summary.read_text(), previous_summary)
 

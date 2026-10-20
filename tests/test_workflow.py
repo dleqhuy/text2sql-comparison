@@ -1,4 +1,4 @@
-"""Regression checks for alignment, failed predictions and the official evaluator."""
+"""Regression checks for alignment, failed predictions and the SQLite execution evaluator."""
 
 import argparse
 import csv
@@ -201,13 +201,11 @@ class WorkflowTest(unittest.TestCase):
             prepare(source, self.root / "data")
         self.assertFalse((self.root / "data/examples.json").exists())
 
-    def test_official_spider_exec_keeps_missing_prediction(self):
+    def test_sqlite_exec_keeps_missing_prediction(self):
         try:
             from nltk import word_tokenize
         except ImportError:
-            self.skipTest(
-                "Install comparison dependencies for Spider integration check"
-            )
+            self.skipTest("Install comparison dependencies for gold difficulty labels")
         word_tokenize("select name from items")
         source = self.fixture()
         data = self.root / "data"

@@ -27,7 +27,7 @@ không dùng để báo cáo chi phí thực tế.
 | DIN-SQL | `fe9d2ea39711dafaba7e0f0621513b9ab9646187` |
 | MAC-SQL | `f8ca56f20192fe85b65a2542f917f820910e80d6` |
 | DAIL-SQL | `7df99e15d8916a35711ff13735fd5ee01262c10e` |
-| Spider evaluator | `b7b5b8c890cd30e35427348bb9eb8c6d1350ca7c` |
+| Spider (độ khó gold) | `b7b5b8c890cd30e35427348bb9eb8c6d1350ca7c` |
 
 Các commit phương pháp đang dùng, gồm điều chỉnh tương thích bên dưới:
 
@@ -49,6 +49,6 @@ Checksum bộ dữ liệu và database nằm trong `data/dev_full/source.json`.
 - DAIL giữ `AS (` khi chuẩn hóa CTE; bỏ tải vector GloVe không dùng và cache
   tra cứu giá trị, giữ nguyên quy tắc linking.
 - Chuẩn hóa chung bỏ backtick an toàn và comment ngoài chuỗi trước khi dồn dòng.
-- Evaluator Spider gốc được giữ nguyên; SQLite backend hỗ trợ chấm trực tiếp.
+- EX chấm bằng SQLite; mã Spider chỉ phân loại độ khó của gold SQL.
 
 Kết quả và cách chạy được mô tả tại [README](../README.md) và [full-dev.md](full-dev.md).

@@ -26,11 +26,10 @@ text2sql/
 │   └── results/full_dev/
 │       ├── raw/                 # Output phương pháp
 │       ├── predictions/         # SQL chuẩn hóa, cùng ID và thứ tự
-│       ├── evaluation/          # Input và log Spider evaluator
+│       ├── evaluation/          # Input, log và kết quả SQLite từng câu
 │       ├── summary.csv
 │       ├── by_difficulty.csv
-│       ├── report.md
-│       └── sqlite/              # Kết quả execution trực tiếp
+│       └── report.md
 ├── Few-shot-NL2SQL-with-prompting/
 ├── MAC-SQL/
 ├── DAIL-SQL/
@@ -39,20 +38,20 @@ text2sql/
 
 ## Kết quả full dev
 
-| Phương pháp | Spider EX | SQLite EX |
-|---|---:|---:|
-| DIN-SQL | 67,2% | 82,01% |
-| MAC-SQL | 58,3% | 81,43% |
-| DAIL-SQL | 70,5% | 82,79% |
+| Phương pháp | SQLite EX |
+|---|---:|
+| DIN-SQL | 82,01% |
+| MAC-SQL | 81,43% |
+| DAIL-SQL | 82,79% |
 
 Cả ba có đủ 1.034 prediction. Độ khó: 248 easy, 446 medium, 174 hard, 166 extra.
-Xem [báo cáo Spider](results/full_dev/report.md) và
-[báo cáo SQLite](results/full_dev/sqlite/report.md).
+Xem [báo cáo EX](results/full_dev/report.md).
 
-Spider EX dùng evaluator gốc, có giới hạn parser với một số SQL hợp lệ.
 SQLite EX thực thi trực tiếp, giữ DISTINCT, literal và số dòng trùng;
 cho phép hoán vị cột nhất quán, xét thứ tự dòng khi gold có ORDER BY ngoài cùng.
 Đây là EX trên một database cho mỗi câu, không phải test-suite accuracy.
+Mã Spider chỉ được dùng để phân loại độ khó của gold SQL; prediction được thực thi
+trực tiếp bằng SQLite.
 
 ## Kiểm thử
 

@@ -1,4 +1,4 @@
-"""Validate alignment and score with original Spider or direct SQLite execution."""
+"""Validate alignment and score predictions by direct SQLite execution."""
 
 import argparse
 import csv
@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from common import ROOT, examples, read_json, sql_line
 
-# Spider drops empty lines, so use invalid SQL to preserve the denominator.
+# Keep missing predictions in their original positions and count them as errors.
 INVALID_SQL = "__MISSING_PREDICTION__"
 LEVELS = ("easy", "medium", "hard", "extra", "all")
 
@@ -45,14 +45,14 @@ def parse_scores(stdout, expected_count):
     )
     if not count or not score:
         raise ValueError(
-            "Spider did not report execution scores/counts; inspect evaluator log"
+            "SQLite evaluator did not report execution scores/counts; inspect log"
         )
     counts = [int(value) for value in count.groups()]
     values = [float(value) for value in score.groups()]
     if counts[-1] != expected_count or sum(counts[:-1]) != expected_count:
-        raise ValueError("Spider difficulty counts do not match the subset size")
+        raise ValueError("Difficulty counts do not match the subset size")
     if any(not 0 <= value <= 1 for value in values):
-        raise ValueError("Invalid Spider EX score")
+        raise ValueError("Invalid SQLite EX score")
     return {
         level: dict(EX=value if size else None, evaluated_examples=size)
         for level, size, value in zip(LEVELS, counts, values)
@@ -69,7 +69,7 @@ def write_csv(path, fieldnames, rows):
     temporary.replace(path)
 
 
-def write_report(path, scores, breakdown, backend="spider"):
+def write_report(path, scores, breakdown):
     first = scores[0]["method"]
     counts = {
         row["difficulty"]: row["evaluated_examples"]
@@ -82,7 +82,8 @@ def write_report(path, scores, breakdown, backend="spider"):
         "# EX theo độ khó",
         "",
         "Độ khó được lấy từ evaluator Spider gốc, dựa trên gold SQL.",
-        "EX được lấy từ đầu ra evaluator, làm tròn đến 3 chữ số thập phân.",
+        "SQLite EX: thực thi trực tiếp trên một database cho mỗi câu; "
+        "không phải test-suite accuracy.",
         "",
         "| Method | " + " | ".join(headers) + " |",
         "|---|" + "---:|" * len(order),
@@ -97,17 +98,12 @@ def write_report(path, scores, breakdown, backend="spider"):
         ]
         lines.append("| " + method + " | " + " | ".join(cells) + " |")
     lines += ["", "`—`: không có câu ở độ khó này, không phải EX bằng 0.", ""]
-    if backend == "sqlite":
-        lines[3] = (
-            "Backend: SQLite, chấm trực tiếp trên một database cho mỗi câu; "
-            "không phải test-suite accuracy. Điểm dùng độ chính xác đầy đủ."
-        )
-        lines += [
-            "Giữ DISTINCT và số dòng trùng; cho phép hoán vị cột nhất quán; "
-            "chỉ bắt buộc thứ tự dòng khi gold có ORDER BY ngoài cùng. "
-            "Không thay giá trị dự đoán bằng giá trị gold.",
-            "",
-        ]
+    lines += [
+        "Giữ DISTINCT và số dòng trùng; cho phép hoán vị cột nhất quán; "
+        "chỉ bắt buộc thứ tự dòng khi gold có ORDER BY ngoài cùng. "
+        "Không thay giá trị dự đoán bằng giá trị gold.",
+        "",
+    ]
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text("\n".join(lines), encoding="utf-8")
@@ -115,16 +111,15 @@ def write_report(path, scores, breakdown, backend="spider"):
 
 
 def evaluate(args):
-    backend = getattr(args, "execution_backend", "spider")
     query_timeout = getattr(args, "query_timeout", 10)
     if query_timeout <= 0:
         raise ValueError("--query-timeout must be positive")
     rows = examples(args.examples)
     if read_json(args.subset) != [r["example_id"] for r in rows]:
         raise ValueError("Subset IDs/order do not match examples.json")
-    evaluator = args.spider_root.resolve() / "evaluation.py"
-    if not evaluator.is_file() or not args.table.is_file():
-        raise FileNotFoundError("Missing official evaluator or tables.json")
+    difficulty_module = args.spider_root.resolve() / "evaluation.py"
+    if not difficulty_module.is_file() or not args.table.is_file():
+        raise FileNotFoundError("Missing Spider gold-difficulty code or tables.json")
     schemas = {r["db_id"] for r in read_json(args.table)}
     for row in rows:
         database = args.db / row["db_id"] / (row["db_id"] + ".sqlite")
@@ -179,35 +174,20 @@ def evaluate(args):
         )
         command = [
             args.python,
-            str(evaluator),
+            str(Path(__file__).with_name("sqlite_eval.py")),
             "--gold",
             str(gold.resolve()),
             "--pred",
             str(pred.resolve()),
-            "--etype",
-            "exec",
             "--db",
             str(args.db.resolve()),
-            "--table",
-            str(args.table.resolve()),
+            "--spider-root",
+            str(args.spider_root.resolve()),
+            "--details",
+            str((args.work_dir / f"{method}.details.json").resolve()),
+            "--query-timeout",
+            str(query_timeout),
         ]
-        if backend == "sqlite":
-            command = [
-                args.python,
-                str(Path(__file__).with_name("sqlite_eval.py")),
-                "--gold",
-                str(gold.resolve()),
-                "--pred",
-                str(pred.resolve()),
-                "--db",
-                str(args.db.resolve()),
-                "--spider-root",
-                str(args.spider_root.resolve()),
-                "--details",
-                str((args.work_dir / f"{method}.details.json").resolve()),
-                "--query-timeout",
-                str(query_timeout),
-            ]
         result = subprocess.run(
             command,
             text=True,
@@ -221,13 +201,13 @@ def evaluate(args):
         )
         if result.returncode:
             raise RuntimeError(
-                f"{backend} evaluator failed for {method}: "
+                f"SQLite evaluator failed for {method}: "
                 f"see {args.work_dir / (method + '.log')}"
             )
         levels = parse_scores(result.stdout, len(rows))
         counts = [levels[level]["evaluated_examples"] for level in LEVELS]
         if difficulty_counts is not None and counts != difficulty_counts:
-            raise ValueError("Spider difficulty counts differ between methods")
+            raise ValueError("Difficulty counts differ between methods")
         difficulty_counts = counts
         breakdown.extend(
             dict(method=method, difficulty=level, **levels[level]) for level in LEVELS
@@ -255,9 +235,7 @@ def evaluate(args):
         ["method", "difficulty", "EX", "evaluated_examples"],
         breakdown,
     )
-    write_report(
-        args.report or args.summary.with_name("report.md"), scores, breakdown, backend
-    )
+    write_report(args.report or args.summary.with_name("report.md"), scores, breakdown)
 
 
 if __name__ == "__main__":
@@ -269,12 +247,6 @@ if __name__ == "__main__":
     p.add_argument("--spider-root", type=Path, default=ROOT.parent / "spider")
     p.add_argument("--db", type=Path, required=True)
     p.add_argument("--table", type=Path, required=True)
-    p.add_argument(
-        "--execution-backend",
-        choices=("spider", "sqlite"),
-        default="spider",
-        help="spider: original parser-based score; sqlite: direct single-database EX",
-    )
     p.add_argument(
         "--query-timeout",
         type=float,
@@ -288,7 +260,9 @@ if __name__ == "__main__":
         help="method=normalized.jsonl; repeat for each method",
     )
     p.add_argument(
-        "--python", default=sys.executable, help="Python with nltk for Spider"
+        "--python",
+        default=sys.executable,
+        help="Python with nltk for gold difficulty labels",
     )
     p.add_argument(
         "--timeout",

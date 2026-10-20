@@ -1,12 +1,14 @@
 # EX theo độ khó
 
 Độ khó được lấy từ evaluator Spider gốc, dựa trên gold SQL.
-EX được lấy từ đầu ra evaluator, làm tròn đến 3 chữ số thập phân.
+SQLite EX: thực thi trực tiếp trên một database cho mỗi câu; không phải test-suite accuracy.
 
 | Method | all (n=1034) | easy (n=248) | medium (n=446) | hard (n=174) | extra (n=166) |
 |---|---:|---:|---:|---:|---:|
-| few_shot | 67.2% | 85.1% | 67.0% | 64.4% | 44.0% |
-| mac_sql | 58.3% | 81.5% | 60.8% | 46.0% | 30.1% |
-| dail_sql | 70.5% | 87.5% | 72.2% | 63.2% | 48.2% |
+| few_shot | 82.0% | 90.7% | 83.0% | 81.0% | 67.5% |
+| mac_sql | 81.4% | 91.9% | 83.4% | 79.3% | 62.7% |
+| dail_sql | 82.8% | 92.7% | 85.2% | 82.8% | 61.4% |
 
 `—`: không có câu ở độ khó này, không phải EX bằng 0.
+
+Giữ DISTINCT và số dòng trùng; cho phép hoán vị cột nhất quán; chỉ bắt buộc thứ tự dòng khi gold có ORDER BY ngoài cùng. Không thay giá trị dự đoán bằng giá trị gold.
