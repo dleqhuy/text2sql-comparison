@@ -28,6 +28,7 @@ p.add_argument('--output', type=Path)
 p.add_argument('--model')
 p.add_argument('--reasoning-effort')
 p.add_argument('--resume', action='store_true')
+p.add_argument('--workers', type=int, default=1)
 a = p.parse_args(sys.argv[3:])
 assert a.model == 'test-codex'
 assert a.reasoning_effort == 'low'
@@ -226,6 +227,15 @@ class CodexComparisonTests(unittest.TestCase):
         self.assertIn("--prediction codex_mcp=", plan)
         self.assertFalse(self.data.exists())
         self.assertFalse(self.output.exists())
+
+    def test_worker_count_is_forwarded_to_codex(self):
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            Comparison(self.args("--workers", "4", "--dry-run")).run()
+        self.assertIn("--workers 4", output.getvalue())
+        with self.assertRaisesRegex(ValueError, "--workers must be positive"):
+            Comparison(self.args("--workers", "0"))
+        with self.assertRaisesRegex(ValueError, "codex_mcp only"):
+            Comparison(self.args("--methods", "mac_sql", "--workers", "4"))
 
     def test_resume_is_explicit_and_codex_only(self):
         for extra in [

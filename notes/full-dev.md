@@ -30,6 +30,7 @@ Các bước inference gọi endpoint LLM trong `.env`.
 | `--codex-model MODEL` | Model Codex; mặc định lấy từ `CODEX_MODEL` |
 | `--codex-reasoning-effort low` | Reasoning effort Codex, mặc định `low` |
 | `--resume` | Chạy tiếp một lượt `--methods codex_mcp` |
+| `--workers 4` | Chạy đồng thời tối đa 4 câu Codex; mặc định 1 |
 
 Tên phương pháp cho `--methods`: `few_shot` (DIN-SQL), `mac_sql`, `dail_sql`, `codex_mcp`.
 Nếu không truyền `--methods`, chỉ chạy ba phương pháp gốc.
@@ -72,7 +73,7 @@ Sau khi [cài môi trường riêng](setup.md#codex-mcp-sql), chạy full dev:
 ```bash
 uv run --no-project python scripts/run_comparison.py \
   --methods codex_mcp --codex-model gpt-6-luna \
-  --codex-reasoning-effort low --output results/codex_full_dev
+  --codex-reasoning-effort low --workers 4 --output results/codex_full_dev
 ```
 
 Model Codex dùng xác thực Codex/OpenAI, không dùng proxy `LLM_BASE_URL` của ba
@@ -92,6 +93,10 @@ Sau khi usage được cấp lại, dùng cùng lệnh và thêm `--resume`. Ch�
 `--methods codex_mcp` khi resume để không chạy lại các phương pháp khác.
 Input, model, effort và ngân sách phải khớp lượt đầu. Log được nối tiếp và runner
 giữ trace cũ trong `raw/codex_mcp/attempts/`.
+Số worker có thể thay đổi khi resume. Mỗi worker dùng SDK/MCP và thư mục tạm
+riêng; kết quả vẫn giữ đúng thứ tự câu. Khi hết usage, runner ngừng nhận câu
+mới, chờ các câu đang chạy lưu kết quả rồi dừng. Ctrl+C hủy các câu đang chạy
+và giữ checkpoint để tiếp tục sau.
 
 Có thể thêm Codex vào kết quả ba phương pháp đã có tại `results/full_dev/`:
 

@@ -28,6 +28,7 @@ uv run --no-project python scripts/run_comparison.py \
 
 Thêm `--resume` vào cùng lệnh để chạy tiếp khi hết usage; xem
 [cách chạy Codex và chấm cùng các phương pháp khác](notes/full-dev.md#codex-mcp-sql).
+Thêm `--workers 4` để Codex xử lý đồng thời 4 câu, kể cả khi resume.
 
 ```text
 text2sql/

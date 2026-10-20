@@ -38,6 +38,9 @@ def parser():
         help="Resume an existing --methods codex_mcp run",
     )
     result.add_argument(
+        "--workers", type=int, default=1, help="Concurrent Codex questions"
+    )
+    result.add_argument(
         "--spider-data", type=Path, default=ROOT / "downloads/spider_data"
     )
     result.add_argument(
@@ -63,6 +66,10 @@ class Comparison:
     def __init__(self, args):
         if args.count is not None and args.count < 1:
             raise ValueError("--count must be positive")
+        if args.workers < 1:
+            raise ValueError("--workers must be positive")
+        if args.workers != 1 and "codex_mcp" not in args.methods:
+            raise ValueError("--workers applies to codex_mcp only")
         if len(set(args.methods)) != len(args.methods):
             raise ValueError("--methods must not contain duplicates")
         if args.resume and (args.methods != ["codex_mcp"] or args.evaluate_only):
@@ -216,6 +223,8 @@ class Comparison:
             self.codex_model or "<CODEX_MODEL>",
             "--reasoning-effort",
             self.args.codex_reasoning_effort,
+            "--workers",
+            self.args.workers,
         ]
         if self.args.resume:
             argv.append("--resume")
