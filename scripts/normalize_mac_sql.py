@@ -30,9 +30,13 @@ def normalize(raw, rows):
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--raw", type=Path, required=True)
-    p.add_argument("--examples", type=Path, default=ROOT / "data/examples.json")
     p.add_argument(
-        "--output", type=Path, default=ROOT / "results/predictions/mac_sql.jsonl"
+        "--examples", type=Path, default=ROOT / "data/dev_full/examples.json"
+    )
+    p.add_argument(
+        "--output",
+        type=Path,
+        default=ROOT / "results/full_dev/predictions/mac_sql.jsonl",
     )
     a = p.parse_args()
     rows = examples(a.examples)

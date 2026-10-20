@@ -7,7 +7,7 @@ from pathlib import Path
 from common import ROOT, read_json, sql_line, write_json
 
 
-def prepare(source, output, count=20, ids_path=None):
+def prepare(source, output, count=None, ids_path=None):
     source, output = Path(source).resolve(), Path(output)
     dev_path, tables_path = source / "dev.json", source / "tables.json"
     dev, tables = read_json(dev_path), read_json(tables_path)
@@ -16,7 +16,10 @@ def prepare(source, output, count=20, ids_path=None):
     ids = (
         read_json(ids_path)
         if ids_path.exists()
-        else [f"dev_{i:04d}" for i in range(min(count, len(dev)))]
+        else [
+            f"dev_{i:04d}"
+            for i in range(len(dev) if count is None else min(count, len(dev)))
+        ]
     )
     if not isinstance(ids, list) or not ids or len(set(ids)) != len(ids):
         raise ValueError("Subset IDs must be a nonempty unique array")
@@ -83,10 +86,12 @@ def prepare(source, output, count=20, ids_path=None):
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--spider-data", type=Path, required=True)
-    p.add_argument("--count", type=int, default=20)
+    p.add_argument(
+        "--count", type=int, help="Optional limit; default exports all dev examples"
+    )
     p.add_argument("--ids", type=Path, help="Existing JSON array of dev_0000-style IDs")
-    p.add_argument("--output", type=Path, default=ROOT / "data")
+    p.add_argument("--output", type=Path, default=ROOT / "data/dev_full")
     a = p.parse_args()
-    if a.count < 1:
+    if a.count is not None and a.count < 1:
         p.error("--count must be positive")
     print(f"Prepared {prepare(a.spider_data, a.output, a.count, a.ids)} examples")

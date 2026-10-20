@@ -1,6 +1,7 @@
 """Regression checks for alignment, failed predictions and the official evaluator."""
 
 import argparse
+import csv
 import json
 from pathlib import Path
 import sqlite3
@@ -74,6 +75,22 @@ class WorkflowTest(unittest.TestCase):
             parse_scores(
                 "count 1 0 0 0 1\nexecution 1.000 0.000 0.000 0.000 1.000\n", 2
             )
+
+    def test_parses_difficulty_counts_and_marks_empty_levels_unavailable(self):
+        result = parse_scores(
+            "count 4 14 2 0 20\nexecution 1.000 0.786 1.000 0.000 0.850\n", 20
+        )
+        self.assertEqual(result["medium"], dict(EX=0.786, evaluated_examples=14))
+        self.assertEqual(result["extra"], dict(EX=None, evaluated_examples=0))
+        self.assertEqual(result["all"], dict(EX=0.85, evaluated_examples=20))
+
+    def test_rejects_inconsistent_difficulty_counts_and_invalid_scores(self):
+        for output in [
+            "count 4 14 3 0 20\nexecution 1.000 0.786 1.000 0.000 0.850\n",
+            "count 4 14 2 0 20\nexecution 1.100 0.786 1.000 0.000 0.850\n",
+        ]:
+            with self.subTest(output=output), self.assertRaises(ValueError):
+                parse_scores(output, 20)
 
     def test_identifier_quotes_preserve_literals_comments_and_escaped_quotes(self):
         sql = "SELECT `s`.`Name`, 'a `Name` and ''quoted''', \"literal `x`\", [a`b] FROM `singer` AS `s` -- `comment`\n/* `comment` */"
@@ -166,6 +183,17 @@ class WorkflowTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             prepare(source, out)
 
+    def test_prepare_exports_all_dev_examples_by_default(self):
+        source = self.fixture()
+        rows = [dict(self.rows[0], question=f"Question {i}") for i in range(25)]
+        write_json(source / "dev.json", rows)
+        out = self.root / "full_dev"
+        self.assertEqual(prepare(source, out), len(rows))
+        self.assertEqual(
+            json.loads((out / "subset.json").read_text()),
+            [f"dev_{i:04d}" for i in range(len(rows))],
+        )
+
     def test_missing_database_fails_before_writing_data(self):
         source = self.fixture()
         (source / "database/demo/demo.sqlite").unlink()
@@ -199,12 +227,23 @@ class WorkflowTest(unittest.TestCase):
             prediction=[f"fixture={pred}"],
             work_dir=self.root / "eval",
             summary=self.root / "summary.csv",
+            difficulty_summary=None,
+            report=None,
             python=sys.executable,
             timeout=30,
         )
         evaluate(args)
         self.assertIn("fixture,0.5,2,1", args.summary.read_text())
         self.assertIn(INVALID_SQL, (args.work_dir / "fixture.txt").read_text())
+        with (self.root / "by_difficulty.csv").open(newline="") as stream:
+            breakdown = {row["difficulty"]: row for row in csv.DictReader(stream)}
+        self.assertEqual(breakdown["easy"]["evaluated_examples"], "2")
+        self.assertEqual(breakdown["easy"]["EX"], "0.5")
+        self.assertEqual(breakdown["extra"]["evaluated_examples"], "0")
+        self.assertEqual(breakdown["extra"]["EX"], "")
+        report = (self.root / "report.md").read_text()
+        self.assertIn("extra (n=0)", report)
+        self.assertIn("| fixture | 50.0% | 50.0% | — | — | — |", report)
 
 
 if __name__ == "__main__":
