@@ -1,0 +1,16 @@
+method,difficulty,EX,evaluated_examples
+few_shot,easy,0.851,248
+few_shot,medium,0.67,446
+few_shot,hard,0.644,174
+few_shot,extra,0.44,166
+few_shot,all,0.672,1034
+mac_sql,easy,0.815,248
+mac_sql,medium,0.608,446
+mac_sql,hard,0.46,174
+mac_sql,extra,0.301,166
+mac_sql,all,0.583,1034
+dail_sql,easy,0.875,248
+dail_sql,medium,0.722,446
+dail_sql,hard,0.632,174
+dail_sql,extra,0.482,166
+dail_sql,all,0.705,1034

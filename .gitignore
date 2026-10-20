@@ -13,15 +13,20 @@ __pycache__/
 
 # Downloaded and generated data
 /downloads/
-/data/*
-!/data/subset.json
+/data/
 
-# Keep only the final scores and empty output directories
+# Keep full-dev score reports; inference artifacts stay local
 /results/*
-!/results/summary.csv
-!/results/raw/
-!/results/predictions/
-/results/raw/*
-!/results/raw/.gitkeep
-/results/predictions/*
-!/results/predictions/.gitkeep
+!/results/full_dev/
+/results/full_dev/*
+!/results/full_dev/summary.csv
+!/results/full_dev/by_difficulty.csv
+!/results/full_dev/report.md
+!/results/full_dev/sqlite/
+/results/full_dev/sqlite/*
+!/results/full_dev/sqlite/summary.csv
+!/results/full_dev/sqlite/by_difficulty.csv
+!/results/full_dev/sqlite/report.md
+
+# Previous local runs and temporary experiment files
+/.local_archive/

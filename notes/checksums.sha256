@@ -8,3 +8,7 @@ b011b3451ec1bed907a5e727636da4216ecc848861495ceed1d238269e000ed1  ../DAIL-SQL/as
 6738eaf3c97a4c71a8e31a964b08c9cbb25a46ea45ad46747e70fdfd7f35a192  ../DAIL-SQL/utils/pretrained_embeddings.py
 745934a44fa4135f5beaf8320b4ddeb2c670a922376d2bc98dd4020c25b2d7f8  ../DAIL-SQL/utils/post_process.py
 3e0be58aa9feabaebf5901727c424941620825bcd6006ac0324d436cd96ee6ab  ../DAIL-SQL/utils/linking_utils/spider_match_utils.py
+a8ac81bfee5c34d9705fcbc69d35a440a4eb0ce89352823293a06b89781b8293  ../MAC-SQL/core/utils.py
+aeb1604f50429039e234f26579a6db3fcb471fceafd34ed69443aea7a13d8209  ../MAC-SQL/core/llm.py
+daf402c671a0af7e8d75a5b597da60d2f17ff03677adc64fced4af5a78120924  ../MAC-SQL/core/api_config.py
+da090df382cc63deeb6332185faaa4b12e6da46ef2dca2bdf75c80f8b901608b  ../DAIL-SQL/utils/utils.py

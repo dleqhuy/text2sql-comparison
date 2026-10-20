@@ -1,60 +1,54 @@
-# Phiên bản và kết quả
+# Phiên bản và cấu hình
 
-Thử nghiệm dùng Python 3.9.6 trên macOS Apple Silicon. Mỗi repo có `.venv` riêng,
-được tạo và cài thư viện bằng `uv`.
+## Bộ thí nghiệm
 
-Formatter: Ruff 0.17.1, khai báo trong nhóm `dev` của `pyproject.toml`.
+- Spider 1.0 dev: 1.034 câu, 20 database, theo thứ tự trong `dev.json` gốc.
+- Độ khó theo Spider: 248 easy, 446 medium, 174 hard, 166 extra.
+- Model: `cx/gpt-6-luna`; endpoint và API key lấy từ `.env`.
+- Python 3.9.6 trên macOS Apple Silicon; mỗi repo có `.venv` riêng.
+- Ruff 0.17.1 cho mã comparison.
 
-## Dữ liệu và model
+## Cấu hình phương pháp
 
-- Spider 1.0: [nguồn chính thức](https://yale-lily.github.io/spider).
-- Subset: 20 câu đầu dev, `dev_0000`–`dev_0019`, đều thuộc `concert_singer`.
-- Model: `cx/gpt-6-luna`, endpoint `http://localhost:20128/v1`.
-- DIN: temperature 0, tối đa 600 token khi sinh SQL và 350 token khi debug.
-- MAC: giữ cấu hình mặc định của repo/provider.
-- DAIL: hai lượt chọn ví dụ, temperature 0, tối đa 200 token, `n=1`.
+| Phương pháp | Cấu hình |
+|---|---|
+| DIN-SQL | Temperature 0; tối đa 600 token khi sinh, 350 token khi debug |
+| MAC-SQL | Selector, Decomposer, Refiner; cấu hình mặc định của repo/provider |
+| DAIL-SQL | Hai lượt; 9 ví dụ QA; context 4096; tối đa 200 token; temperature 0; n=1 |
 
-Đây là thử nghiệm kiểm tra pipeline, chưa đại diện cho toàn bộ Spider.
+DAIL dùng `sentence-transformers/all-mpnet-base-v2`, CoreNLP 2018-10-05 và Java 11.
+Bộ đếm token của DAIL checkout gốc trả 0, nên phần ước tính token/chi phí của nó
+không dùng để báo cáo chi phí thực tế.
 
-## Commit gốc
+## Mã nguồn gốc
 
-| Repo | Commit |
+| Repo | Commit gốc |
 |---|---|
 | DIN-SQL | `fe9d2ea39711dafaba7e0f0621513b9ab9646187` |
 | MAC-SQL | `f8ca56f20192fe85b65a2542f917f820910e80d6` |
 | DAIL-SQL | `7df99e15d8916a35711ff13735fd5ee01262c10e` |
 | Spider evaluator | `b7b5b8c890cd30e35427348bb9eb8c6d1350ca7c` |
 
-Các sửa đổi đã được commit riêng:
+Các commit phương pháp đang dùng, gồm điều chỉnh tương thích bên dưới:
 
-| Repo | Commit có các sửa đổi dùng trong thí nghiệm |
+| Repo | Commit |
 |---|---|
 | DIN-SQL | `be08d838ce1cc1a4d465b3f34bb4d493d21cb10a` |
-| DAIL-SQL | `fa1c2a1e38946934858fef5db5e3e22661fee02b` |
+| MAC-SQL | `53e7ebf` |
+| DAIL-SQL | `0f6d7ec` |
 
-Danh sách thư viện đã cài nằm trong [dependencies/](dependencies/).
-Checksum của các tài nguyên và mã phương pháp ở thời điểm chạy nằm trong
-[checksums.sha256](checksums.sha256). Hash dữ liệu nằm trong `data/source.json`.
+Thư viện runtime nằm trong [dependencies/](dependencies/), checksum tài nguyên
+và mã hiện tại nằm trong [checksums.sha256](checksums.sha256).
+Checksum bộ dữ liệu và database nằm trong `data/dev_full/source.json`.
 
-## Các sửa đổi cần biết
+## Điều chỉnh tương thích
 
-- DIN/DAIL: đọc được SQL trong Markdown và phản hồi chat khác định dạng cũ.
-- DIN: giới hạn retry, ghi kết quả từng câu và giữ vị trí khi lỗi.
-- DAIL: bỏ tải vector GloVe không dùng và cache tra cứu giá trị; đã đối chiếu với hàm gốc.
-- DAIL: bộ đếm token của checkout gốc trả 0; số token/chi phí ước tính không đáng tin.
-- Chuẩn hóa chung: bỏ backtick an toàn và comment ngoài chuỗi trước khi dồn dòng.
-- Output raw và evaluator Spider gốc được giữ nguyên.
+- Cả ba phương pháp đọc endpoint/model/API key từ biến môi trường `LLM_*`.
+- DIN xử lý phản hồi chat/Markdown, giới hạn retry và lưu từng prediction.
+- MAC trích xuất được cả khối Markdown SQL và SQL thuần bắt đầu bằng SELECT/WITH.
+- DAIL giữ `AS (` khi chuẩn hóa CTE; bỏ tải vector GloVe không dùng và cache
+  tra cứu giá trị, giữ nguyên quy tắc linking.
+- Chuẩn hóa chung bỏ backtick an toàn và comment ngoài chuỗi trước khi dồn dòng.
+- Evaluator Spider gốc được giữ nguyên; SQLite backend hỗ trợ chấm trực tiếp.
 
-## Kết quả hiện tại
-
-| Phương pháp | Đúng / tổng | EX |
-|---|---:|---:|
-| DIN-SQL | 16/20 | 80% |
-| MAC-SQL | 17/20 | 85% |
-| DAIL-SQL | 19/20 | 95% |
-
-MAC còn hai lỗi parser do alias cột; câu `dev_0016` chạy được nhưng khác gold.
-13 kiểm thử comparison đã qua. Test phương pháp: DIN 7, DAIL 3 đều qua.
-
-Điểm cuối nằm trong [summary.csv](../results/summary.csv). Các bản trước chuẩn hóa
-và audit được giữ cục bộ trong `results/archive/`, không đưa vào Git.
+Kết quả và cách chạy được mô tả tại [README](../README.md) và [full-dev.md](full-dev.md).

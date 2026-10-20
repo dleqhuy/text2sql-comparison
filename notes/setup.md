@@ -1,7 +1,7 @@
 # Cài môi trường bằng uv
 
-Máy hiện tại đã có bốn `.venv`. Các lệnh tạo môi trường dưới đây dành cho workspace
-mới; dùng Python 3.9 để tương thích với thư viện cũ của các phương pháp.
+Dùng Python 3.9 để tương thích với thư viện của các phương pháp.
+Mỗi repo có môi trường riêng.
 
 Chạy từ `text2sql-comparison/`, với `uv` đã được cài:
 
@@ -30,7 +30,7 @@ chúng không phải bộ lock đa nền tảng. Mỗi repo giữ môi trường
 ```bash
 uv run --no-project python -m nltk.downloader \
   -d /private/tmp/text2sql-nltk punkt punkt_tab stopwords
-cp .env.example .env
+test -f .env || cp .env.example .env
 ```
 
 Chỉ copy `.env.example` khi chưa có `.env`, rồi điền API key. Không ghi đè cấu hình
@@ -50,5 +50,16 @@ downloads/spider_data/
   train_gold.sql
 ```
 
-DAIL còn cần Java, CoreNLP và model embedding; xem [dail-sql.md](dail-sql.md).
-Sau đó làm theo [commands.md](commands.md).
+## Tài nguyên DAIL-SQL
+
+Cài Java 11 và giải nén CoreNLP 2018-10-05 vào
+`../DAIL-SQL/third_party/stanford-corenlp-full-2018-10-05/` theo
+[README DAIL-SQL](../../DAIL-SQL/README.md).
+Script tự đặt đường dẫn tài nguyên theo layout repo. Nếu cài ở nơi khác, đặt
+`JAVA_HOME` và `CORENLP_HOME` theo [hướng dẫn chạy](full-dev.md#dail-sql).
+
+DAIL cần checkpoint `sentence-transformers/all-mpnet-base-v2`.
+`HF_HOME` và `SENTENCE_TRANSFORMERS_HOME` trỏ vào `.cache/` của repo DAIL;
+lần đầu sử dụng cần kết nối mạng để tải model nếu cache chưa có.
+
+Tiếp tục với [chạy full dev](full-dev.md).

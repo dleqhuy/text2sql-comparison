@@ -1,92 +1,63 @@
 # Text-to-SQL Comparison
 
-So sánh DIN-SQL, MAC-SQL và DAIL-SQL trên cùng một subset Spider 1.0.
-Mỗi phương pháp chạy trong repo riêng; comparison chỉ chuẩn bị dữ liệu,
-chuẩn hóa prediction và chấm Execution Accuracy (EX) bằng evaluator Spider gốc.
+So sánh DIN-SQL, MAC-SQL và DAIL-SQL trên **toàn bộ Spider 1.0 dev**:
+1.034 câu, 20 database, cùng thứ tự và cùng model `cx/gpt-6-luna`.
 
-## Cấu trúc
+## Chạy
+
+1. [Cài môi trường và tài nguyên](notes/setup.md).
+2. [Chạy full dev và chấm điểm](notes/full-dev.md).
+3. [Cấu hình phương pháp và phiên bản](notes/versions.md).
+
+Cần kiểm tra pipeline trước: [chạy thử 20 câu](notes/smoke20.md).
+
+Mỗi phương pháp dùng repo và `.venv` riêng. Cấu hình endpoint, model và API key
+trong `.env` theo `.env.example`.
+Script chung: `scripts/run_comparison.py`; mặc định full dev, dùng `--count 20`
+để chạy thử. Các tùy chọn nằm trong [hướng dẫn chạy](notes/full-dev.md).
 
 ```text
 text2sql/
 ├── text2sql-comparison/
-│   ├── data/subset.json
-│   ├── scripts/
+│   ├── data/dev_full/           # Input chung cho 1.034 câu
+│   ├── scripts/                 # Chạy, chuẩn hóa và chấm điểm
 │   ├── tests/
 │   ├── notes/
-│   └── results/
-│       ├── raw/
-│       ├── predictions/
-│       └── summary.csv
-├── Few-shot-NL2SQL-with-prompting/  # DIN-SQL
+│   └── results/full_dev/
+│       ├── raw/                 # Output phương pháp
+│       ├── predictions/         # SQL chuẩn hóa, cùng ID và thứ tự
+│       ├── evaluation/          # Input và log Spider evaluator
+│       ├── summary.csv
+│       ├── by_difficulty.csv
+│       ├── report.md
+│       └── sqlite/              # Kết quả execution trực tiếp
+├── Few-shot-NL2SQL-with-prompting/
 ├── MAC-SQL/
 ├── DAIL-SQL/
-└── spider/                        # evaluator gốc
+└── spider/
 ```
 
-## Cài đặt và chạy
+## Kết quả full dev
 
-Dùng `uv`, giữ mỗi repo một `.venv` riêng. Xem:
-
-- [Cài đặt](notes/setup.md).
-- [Các lệnh chạy](notes/commands.md).
-- [Chạy DAIL-SQL](notes/dail-sql.md).
-- [Phiên bản và cấu hình thí nghiệm](notes/versions.md).
-
-Sau khi cài môi trường và có dữ liệu, chạy từ repo comparison:
-
-```bash
-uv run --no-project python scripts/prepare_data.py --spider-data downloads/spider_data
-```
-
-`data/subset.json` cố định 20 câu đầu dev. Script tạo `data/dev.json`,
-`data/examples.json`, `data/tables.json` và `data/gold.txt` cho các bước tiếp theo.
-Dùng cùng phiên bản dữ liệu, database và thứ tự câu hỏi cho cả ba phương pháp.
-
-Đặt cấu hình LLM trong `.env` theo `.env.example`; file chứa API key được Git bỏ qua.
-Lệnh inference và môi trường của từng phương pháp nằm trong hướng dẫn chạy.
-Các script comparison không gọi LLM.
-
-## Chuẩn hóa và đánh giá
-
-Lưu output gốc trong `results/raw/`, rồi chạy ba script `normalize_*.py`.
-Mỗi file JSONL trong `results/predictions/` có một record cho mỗi câu:
-
-```json
-{"example_id": "dev_0000", "db_id": "concert_singer", "question": "How many singers do we have?", "predicted_sql": "SELECT COUNT(*) FROM singer"}
-```
-
-Cả ba phương pháp dùng chung quy tắc chuẩn hóa:
-
-- Bỏ backtick quanh tên đơn giản không trùng từ khóa SQLite.
-- Bỏ comment ngoài chuỗi trước khi dồn SQL thành một dòng.
-- Giữ giá trị literal, output raw và vị trí các prediction thiếu.
-
-`scripts/evaluate.py` kiểm tra ID, thứ tự và dữ liệu, xuất input cho
-[Spider evaluator](https://github.com/taoyds/spider), gọi `evaluation.py --etype exec`
-và ghi `results/summary.csv`. Evaluator được giữ nguyên.
-Prediction rỗng được biểu diễn bằng SQL không hợp lệ khi chấm để vẫn tính là sai.
-
-## Kết quả chạy thử
-
-Model `cx/gpt-6-luna`, cùng 20 câu `dev_0000`–`dev_0019`:
-
-| Phương pháp | Đúng / tổng | EX |
+| Phương pháp | Spider EX | SQLite EX |
 |---|---:|---:|
-| DIN-SQL | 16/20 | 80% |
-| MAC-SQL | 17/20 | 85% |
-| DAIL-SQL, hai lượt, n=1 | 19/20 | 95% |
+| DIN-SQL | 67,2% | 82,01% |
+| MAC-SQL | 58,3% | 81,43% |
+| DAIL-SQL | 70,5% | 82,79% |
 
-Xem [summary.csv](results/summary.csv). Cả 20 câu thuộc `concert_singer`, nên kết quả
-này dùng để kiểm tra pipeline, chưa đại diện cho toàn bộ Spider.
-MAC còn hai lỗi parser do alias cột; `dev_0016` chạy được nhưng khác gold.
+Cả ba có đủ 1.034 prediction. Độ khó: 248 easy, 446 medium, 174 hard, 166 extra.
+Xem [báo cáo Spider](results/full_dev/report.md) và
+[báo cáo SQLite](results/full_dev/sqlite/report.md).
 
-## Format và kiểm thử
+Spider EX dùng evaluator gốc, có giới hạn parser với một số SQL hợp lệ.
+SQLite EX thực thi trực tiếp, giữ DISTINCT, literal và số dòng trùng;
+cho phép hoán vị cột nhất quán, xét thứ tự dòng khi gold có ORDER BY ngoài cùng.
+Đây là EX trên một database cho mỗi câu, không phải test-suite accuracy.
+
+## Kiểm thử
 
 ```bash
-uv run --no-project ruff format .
-uv run --no-project ruff format --check .
+export NLTK_DATA=/private/tmp/text2sql-nltk
 uv run --no-project python -m unittest discover -s tests -v
+uv run --no-project ruff format --check .
 ```
-
-Khi chạy test, đặt `NLTK_DATA` theo [hướng dẫn](notes/commands.md).
-Repo này không quản lý inference hay môi trường chung cho các phương pháp.
