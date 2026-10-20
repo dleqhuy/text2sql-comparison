@@ -58,8 +58,13 @@ text2sql/
 | DIN-SQL | 82,01% |
 | MAC-SQL | 81,43% |
 | DAIL-SQL | 82,79% |
+| Codex MCP SQL | 76,69% |
 
-Cả ba có đủ 1.034 prediction. Độ khó: 248 easy, 446 medium, 174 hard, 166 extra.
+Cả bốn có đủ 1.034 prediction. Codex đúng 793 câu, không còn lỗi runner; kiểm tra
+241 câu EX sai chưa phát hiện lỗi parse hoặc chuẩn hóa gây mất điểm. Codex dùng
+`gpt-6-luna`, effort `low`, tối đa 4 worker qua SDK; ba phương pháp gốc dùng
+`cx/gpt-6-luna` qua proxy, nên đây là so sánh hệ thống với cấu hình inference khác nhau.
+ Độ khó: 248 easy, 446 medium, 174 hard, 166 extra.
 Xem [báo cáo EX](results/full_dev/report.md).
 
 SQLite EX thực thi trực tiếp, giữ DISTINCT, literal và số dòng trùng;

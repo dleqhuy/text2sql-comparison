@@ -2,3 +2,4 @@ method,EX,evaluated_examples,empty_predictions
 few_shot,0.820116054159,1034,0
 mac_sql,0.814313346228,1034,0
 dail_sql,0.827852998066,1034,0
+codex_mcp,0.766924564797,1034,0
