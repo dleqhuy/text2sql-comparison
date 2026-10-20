@@ -15,6 +15,12 @@
 | DIN-SQL | Temperature 0; tối đa 600 token khi sinh, 350 token khi debug |
 | MAC-SQL | Selector, Decomposer, Refiner; cấu hình mặc định của repo/provider |
 | DAIL-SQL | Hai lượt; 9 ví dụ QA; context 4096; tối đa 200 token; temperature 0; n=1 |
+| Codex MCP SQL (tùy chọn) | AsyncCodex; thread ephemeral mỗi câu; SQLite MCP; effort mặc định low; tối đa 20 tool calls và 180 giây/câu |
+
+Codex dùng Python 3.12 và dependency trong `codex-mcp-sql/uv.lock` (SDK 0.163.0
+tại thời điểm tích hợp). Model chọn bằng `--codex-model`/`CODEX_MODEL`, độc lập với
+`LLM_MODEL`; metadata của mỗi run ghi model/effort và phiên bản runtime thực tế.
+Chưa có kết quả Codex full dev trong bảng kết quả ba phương pháp đã công bố.
 
 DAIL dùng `sentence-transformers/all-mpnet-base-v2`, CoreNLP 2018-10-05 và Java 11.
 Bộ đếm token của DAIL checkout gốc trả 0, nên phần ước tính token/chi phí của nó
@@ -36,6 +42,7 @@ Các commit phương pháp đang dùng, gồm điều chỉnh tương thích bê
 | DIN-SQL | `be08d838ce1cc1a4d465b3f34bb4d493d21cb10a` |
 | MAC-SQL | `53e7ebf` |
 | DAIL-SQL | `0f6d7ec` |
+| Codex MCP SQL | `abb6d94` |
 
 Thư viện runtime nằm trong [dependencies/](dependencies/), checksum tài nguyên
 và mã hiện tại nằm trong [checksums.sha256](checksums.sha256).

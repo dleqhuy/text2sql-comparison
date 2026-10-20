@@ -25,6 +25,23 @@ chúng không phải bộ lock đa nền tảng. Mỗi repo giữ môi trường
 `uv pip` dùng được với `.venv` và requirements hiện có; xem
 [tài liệu uv](https://docs.astral.sh/uv/pip/environments/).
 
+## Codex MCP SQL
+
+Baseline này dùng Python 3.12 trong môi trường riêng. Cần repo
+[codex-mcp-sql](https://github.com/dleqhuy/codex-mcp-sql) nằm cạnh comparison:
+
+```bash
+# Clone nếu workspace chưa có repo này
+git clone https://github.com/dleqhuy/codex-mcp-sql.git ../codex-mcp-sql
+uv sync --project ../codex-mcp-sql --locked
+```
+
+Dùng Codex login có `auth.json`, hoặc đặt `CODEX_API_KEY`/`OPENAI_API_KEY`.
+Model lấy từ `--codex-model` hoặc `CODEX_MODEL` trong `.env` đã source.
+`codex_mcp` không cần `LLM_MODEL`, `LLM_API_KEY`, `LLM_BASE_URL`, Java hay CoreNLP;
+comparison vẫn cần NLTK để phân loại độ khó gold khi chấm điểm.
+Không cần cài SDK vào môi trường Python 3.9 của comparison.
+
 ## Tokenizer và API
 
 ```bash

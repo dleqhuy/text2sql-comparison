@@ -28,3 +28,14 @@ uv run --no-project python scripts/run_comparison.py --count 20 --evaluate-only
 
 Có thể thêm `--dry-run` để xem trước, `--methods` để chọn phương pháp hoặc
 `--output` để chạy mới vào thư mục khác. Xem [tùy chọn chung và chính sách chấm](full-dev.md).
+
+Chạy thử riêng Codex MCP SQL (dùng môi trường/xác thực Codex):
+
+```bash
+uv run --no-project python scripts/run_comparison.py \
+  --methods codex_mcp --codex-model gpt-6-luna \
+  --count 20 --output results/codex_smoke20
+```
+
+Thêm `--resume` vào cùng lệnh để chạy tiếp nếu hết usage. Có thể dùng `--count 3`
+và một output mới để kiểm tra nhanh trước; xem [cấu hình Codex](full-dev.md#codex-mcp-sql).

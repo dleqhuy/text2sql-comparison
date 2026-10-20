@@ -2,6 +2,8 @@
 
 So sánh DIN-SQL, MAC-SQL và DAIL-SQL trên **toàn bộ Spider 1.0 dev**:
 1.034 câu, 20 database, cùng thứ tự và cùng model `cx/gpt-6-luna`.
+Hỗ trợ thêm baseline `codex_mcp` qua Python SDK trong repo `codex-mcp-sql`.
+Phương pháp này chọn riêng bằng `--methods codex_mcp`; mặc định vẫn chạy ba phương pháp trên.
 
 ## Chạy
 
@@ -15,6 +17,17 @@ Mỗi phương pháp dùng repo và `.venv` riêng. Cấu hình endpoint, model 
 trong `.env` theo `.env.example`.
 Script chung: `scripts/run_comparison.py`; mặc định full dev, dùng `--count 20`
 để chạy thử. Các tùy chọn nằm trong [hướng dẫn chạy](notes/full-dev.md).
+
+Chạy riêng Codex trên 3 câu, sau khi [cài môi trường Codex](notes/setup.md#codex-mcp-sql):
+
+```bash
+uv run --no-project python scripts/run_comparison.py \
+  --methods codex_mcp --codex-model gpt-6-luna \
+  --count 3 --output results/codex_smoke3
+```
+
+Thêm `--resume` vào cùng lệnh để chạy tiếp khi hết usage; xem
+[cách chạy Codex và chấm cùng các phương pháp khác](notes/full-dev.md#codex-mcp-sql).
 
 ```text
 text2sql/
@@ -33,6 +46,7 @@ text2sql/
 ├── Few-shot-NL2SQL-with-prompting/
 ├── MAC-SQL/
 ├── DAIL-SQL/
+├── codex-mcp-sql/
 └── spider/
 ```
 

@@ -27,8 +27,12 @@ Các bước inference gọi endpoint LLM trong `.env`.
 | `--spider-data PATH` | Bộ Spider gốc; mặc định `downloads/spider_data/` |
 | `--evaluate-only` | Chuẩn hóa và chấm lại raw có sẵn, không gọi LLM |
 | `--dry-run` | In các bước, không ghi file hay gọi LLM |
+| `--codex-model MODEL` | Model Codex; mặc định lấy từ `CODEX_MODEL` |
+| `--codex-reasoning-effort low` | Reasoning effort Codex, mặc định `low` |
+| `--resume` | Chạy tiếp một lượt `--methods codex_mcp` |
 
-Tên phương pháp cho `--methods`: `few_shot` (DIN-SQL), `mac_sql`, `dail_sql`.
+Tên phương pháp cho `--methods`: `few_shot` (DIN-SQL), `mac_sql`, `dail_sql`, `codex_mcp`.
+Nếu không truyền `--methods`, chỉ chạy ba phương pháp gốc.
 Điểm của lượt chạy chỉ gồm các phương pháp đã chọn.
 
 Để xem trước luồng chạy:
@@ -60,6 +64,51 @@ Script tự đặt đường dẫn tài nguyên theo layout trong repo DAIL-SQL.
 CoreNLP được cài ở vị trí khác, đặt `JAVA_HOME` và `CORENLP_HOME` trước khi chạy.
 `HF_HOME` và `SENTENCE_TRANSFORMERS_HOME` mặc định dùng `.cache/` của DAIL.
 Bước preprocessing dùng `--tokenize-only`, vẫn xử lý cả dữ liệu train để chọn ví dụ.
+
+## Codex MCP SQL
+
+Sau khi [cài môi trường riêng](setup.md#codex-mcp-sql), chạy full dev:
+
+```bash
+uv run --no-project python scripts/run_comparison.py \
+  --methods codex_mcp --codex-model gpt-6-luna \
+  --codex-reasoning-effort low --output results/codex_full_dev
+```
+
+Model Codex dùng xác thực Codex/OpenAI, không dùng proxy `LLM_BASE_URL` của ba
+phương pháp gốc. Khi model hoặc cấu hình inference khác nhau, đây là so sánh
+hệ thống, không chỉ cách prompting. Model, effort và ngân sách được lưu trong
+`raw/codex_mcp/metadata.json`; mặc định mỗi câu 20 tool calls, 180 giây toàn phiên,
+5 giây mỗi SQL và tối đa 100 dòng tool trả về.
+
+Runner nhận `examples.json` đã chọn đúng số câu và database chung. Output và
+checkpoint nằm trong `raw/codex_mcp/`, log ở `raw/codex_mcp.log`.
+Comparison chuẩn hóa thành `predictions/codex_mcp.jsonl`, rồi chấm cùng evaluator
+SQLite. Nếu mọi câu đã được thử nhưng có câu lỗi, prediction rỗng vẫn tính sai.
+Nếu còn câu chưa chạy hoặc hết usage, script dừng trước bước chuẩn hóa/chấm;
+`--evaluate-only` cũng từ chối run chưa hoàn tất.
+
+Sau khi usage được cấp lại, dùng cùng lệnh và thêm `--resume`. Chỉ chọn
+`--methods codex_mcp` khi resume để không chạy lại các phương pháp khác.
+Input, model, effort và ngân sách phải khớp lượt đầu. Log được nối tiếp và runner
+giữ trace cũ trong `raw/codex_mcp/attempts/`.
+
+Có thể thêm Codex vào kết quả ba phương pháp đã có tại `results/full_dev/`:
+
+```bash
+# Chỉ inference Codex; tái sử dụng input/database chung
+uv run --no-project python scripts/run_comparison.py \
+  --methods codex_mcp --codex-model gpt-6-luna --output results/full_dev
+
+# Chấm lại cả bốn từ raw đã có; không chạy lại inference ba phương pháp gốc
+uv run --no-project python scripts/run_comparison.py \
+  --methods few_shot mac_sql dail_sql codex_mcp \
+  --output results/full_dev --evaluate-only
+```
+
+Mỗi lần chấm thay báo cáo bằng các phương pháp được chọn; lệnh cuối tạo bảng đủ
+bốn phương pháp. Nếu muốn inference mới cả bốn, truyền cùng danh sách `--methods`
+và chọn một `--output` mới.
 
 ## Đọc kết quả
 
