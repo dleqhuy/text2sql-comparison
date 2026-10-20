@@ -1,57 +1,55 @@
-# EX theo độ khó
+# So sánh Text-to-SQL trên Spider dev
 
-Độ khó được lấy từ evaluator Spider gốc, dựa trên gold SQL.
-SQLite EX: thực thi trực tiếp trên một database cho mỗi câu; không phải test-suite accuracy.
+## Dữ liệu và cấu hình
 
-| Method | all (n=1034) | easy (n=248) | medium (n=446) | hard (n=174) | extra (n=166) |
-|---|---:|---:|---:|---:|---:|
-| few_shot | 82.0% | 90.7% | 83.0% | 81.0% | 67.5% |
-| mac_sql | 81.4% | 91.9% | 83.4% | 79.3% | 62.7% |
-| dail_sql | 82.8% | 92.7% | 85.2% | 82.8% | 61.4% |
-| codex_mcp | 76.7% | 89.9% | 80.0% | 70.7% | 54.2% |
+Cả bốn phương pháp dùng 1.034 câu Spider 1.0 dev, 20 database, cùng ID và thứ tự.
+Độ khó lấy từ gold SQL bằng evaluator Spider: 248 easy, 446 medium, 174 hard,
+166 extra.
 
-`—`: không có câu ở độ khó này, không phải EX bằng 0.
+| Phương pháp | Model / backend | Cấu hình chính | Nguồn artifact cục bộ |
+|---|---|---|---|
+| DIN-SQL (`few_shot`) | `cx/gpt-6-luna` / proxy LLM | Temperature 0; tối đa 600 token sinh, 350 token debug | `results/full_dev/` |
+| MAC-SQL (`mac_sql`) | `cx/gpt-6-luna` / proxy LLM | Selector, Decomposer, Refiner; mặc định repo/provider | `results/full_dev/` |
+| DAIL-SQL (`dail_sql`) | `cx/gpt-6-luna` / proxy LLM | Hai lượt; 9 ví dụ QA; context 4096; tối đa 200 token; temperature 0 | `results/full_dev/` |
+| Codex MCP SQL (`codex_mcp`) | `gpt-6-luna` / Codex SDK 0.163.0 | Effort low; tối đa 4 worker; 20 tool calls, 180 giây/câu; 5 giây/SQL; 100 dòng/tool | `results/codex_full_dev/` |
 
-Giữ DISTINCT và số dòng trùng; cho phép hoán vị cột nhất quán; chỉ bắt buộc thứ tự dòng khi gold có ORDER BY ngoài cùng. Không thay giá trị dự đoán bằng giá trị gold.
+Đây là so sánh hệ thống: backend, công cụ và cấu hình inference khác nhau nên
+kết quả không cô lập tác động của prompting. Phiên bản và cấu hình chi tiết ở
+[notes/versions.md](../../notes/versions.md).
 
-## Kết quả Codex MCP SQL
+## Kết quả
 
-Codex đạt **793/1.034 câu đúng (76,69% EX)**, đủ 1.034 prediction không rỗng;
-runner hoàn tất 1.034 câu, không còn câu lỗi hoặc chờ chạy.
-Dùng `gpt-6-luna`, reasoning effort `low`, tối đa 4 worker; mỗi câu có ngân sách
-20 tool calls, 180 giây toàn phiên, 5 giây mỗi SQL và tối đa 100 dòng tool trả về.
+| Phương pháp | Đúng / tổng | SQLite EX | Prediction rỗng |
+|---|---:|---:|---:|
+| DIN-SQL | 848 / 1.034 | 82,01% | 0 |
+| MAC-SQL | 842 / 1.034 | 81,43% | 0 |
+| DAIL-SQL | 856 / 1.034 | 82,79% | 0 |
+| Codex MCP SQL | 793 / 1.034 | 76,69% | 0 |
 
-Ba phương pháp gốc dùng `cx/gpt-6-luna` qua proxy; Codex dùng Python SDK
-`openai-codex==0.163.0` và xác thực Codex/OpenAI. Vì endpoint, công cụ và cấu hình
-inference khác nhau, bảng này so sánh các hệ thống, không cô lập tác động prompting.
-Điểm Codex là kết quả sau khi resume/retry các câu lỗi; bốn trace cuối được khôi phục
-sau sửa validator nhận dấu `;` cuối SQL, không gọi model thêm cho bước khôi phục này.
+DAIL-SQL có EX cao nhất trong lượt so sánh này. Cả bốn có đủ 1.034 prediction.
 
-Bảng và CSV tại đây tổng hợp ba lượt gốc trong `results/full_dev/` và lượt Codex
-trong `results/codex_full_dev/`. Raw, prediction và trace Codex vẫn nằm ở thư mục
-riêng; đây là các artifact cục bộ, không được đưa vào Git.
+| Phương pháp | Easy (248) | Medium (446) | Hard (174) | Extra (166) |
+|---|---:|---:|---:|---:|
+| DIN-SQL | 90,7% | 83,0% | 81,0% | 67,5% |
+| MAC-SQL | 91,9% | 83,4% | 79,3% | 62,7% |
+| DAIL-SQL | 92,7% | 85,2% | 82,8% | 61,4% |
+| Codex MCP SQL | 89,9% | 80,0% | 70,7% | 54,2% |
 
-## Kiểm tra các câu Codex bị chấm sai
+Số liệu đầy đủ: [summary.csv](summary.csv), [by_difficulty.csv](by_difficulty.csv).
+Hai CSV tổng hợp các lượt tại những thư mục nguồn ở bảng cấu hình; raw,
+prediction và trace được giữ cục bộ trong từng thư mục, không đưa vào Git.
 
-Kiểm tra cả 1.034 câu cho thấy JSON model, SQL lưu trong result/raw, chuẩn hóa,
-input evaluator, gold, định tuyến câu hỏi/database và xác nhận MCP đều khớp.
-Với riêng **241 câu EX sai**, đã thực thi lại SQL gốc, SQL chuẩn hóa và gold:
-không có lỗi thực thi SQLite, không có thay đổi kết quả do chuẩn hóa, không có câu
-SQL gốc đúng nhưng bị chuẩn hóa thành sai, và kết quả chấm lại khớp kết quả đã lưu.
-Chưa phát hiện lỗi parse hoặc chuẩn hóa gây mất điểm trong lượt này.
+## Cách chấm và kiểm tra
 
-| Khác biệt với kết quả gold | Số câu |
-|---|---:|
-| Khác số cột | 66 |
-| Cùng số cột, khác số dòng | 104 |
-| Cùng số cột và số dòng, khác giá trị | 71 |
-| Tổng | 241 |
+SQLite EX thực thi trực tiếp trên một database cho mỗi câu; không phải test-suite
+accuracy. Evaluator giữ DISTINCT, literal và số dòng trùng; cho phép hoán vị cột
+nhất quán và chỉ bắt buộc thứ tự dòng khi gold có ORDER BY ngoài cùng. Không thay
+giá trị dự đoán bằng giá trị gold. Mã Spider chỉ phân loại độ khó của gold SQL.
 
-Ví dụ: `dev_0026` trả thêm cột COUNT; `dev_0022` dùng LEFT JOIN nên có 9 dòng
-thay vì 5; `dev_0101` chọn Accelerate trong khi gold chọn Year. Một số gold có
-điểm không khớp rõ với cách diễn đạt câu hỏi, như `dev_0066` hỏi tên nhưng gold
-trả cả tuổi. Vì vậy, EX sai là khác kết quả gold trên database hiện có, không tự
-động chứng minh mọi SQL đó đều sai theo ý định câu hỏi.
-
-Chi tiết kiểm tra cục bộ: `results/codex_full_dev/audit/parse_audit.json` và
-`results/codex_full_dev/audit/wrong_examples.csv`.
+Báo cáo sử dụng prediction cuối đã lưu sau các bước retry và kiểm tra hợp lệ.
+Audit bổ sung cho `codex_mcp` kiểm tra pipeline trên 1.034 câu và thực thi lại SQL
+gốc, SQL chuẩn hóa, gold của 241 câu EX sai: chưa phát hiện lỗi parse/chuẩn hóa
+gây mất điểm, không có lỗi thực thi SQLite. Phạm vi và chi tiết khôi phục trace
+được ghi tại [ghi chú kiểm tra prediction](../../notes/prediction-audit.md).
+EX sai thể hiện khác kết quả gold trên database hiện có; một số câu hỏi/gold có
+thể có cách hiểu khác nhau.

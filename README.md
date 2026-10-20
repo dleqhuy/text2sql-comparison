@@ -1,9 +1,10 @@
 # Text-to-SQL Comparison
 
-So sánh DIN-SQL, MAC-SQL và DAIL-SQL trên **toàn bộ Spider 1.0 dev**:
-1.034 câu, 20 database, cùng thứ tự và cùng model `cx/gpt-6-luna`.
-Hỗ trợ thêm baseline `codex_mcp` qua Python SDK trong repo `codex-mcp-sql`.
-Phương pháp này chọn riêng bằng `--methods codex_mcp`; mặc định vẫn chạy ba phương pháp trên.
+So sánh DIN-SQL, MAC-SQL, DAIL-SQL và Codex MCP SQL trên **toàn bộ Spider 1.0 dev**:
+1.034 câu, 20 database, cùng ID và thứ tự. Cả bốn dùng chung luồng chuẩn hóa và
+chấm SQLite EX. Cấu hình model/backend nằm trong [báo cáo so sánh](results/full_dev/report.md).
+Mặc định CLI chạy DIN-SQL, MAC-SQL và DAIL-SQL; chọn cả bốn bằng
+`--methods few_shot mac_sql dail_sql codex_mcp`.
 
 ## Chạy
 
@@ -13,8 +14,9 @@ Phương pháp này chọn riêng bằng `--methods codex_mcp`; mặc định v�
 
 Cần kiểm tra pipeline trước: [chạy thử 20 câu](notes/smoke20.md).
 
-Mỗi phương pháp dùng repo và `.venv` riêng. Cấu hình endpoint, model và API key
-trong `.env` theo `.env.example`.
+Mỗi phương pháp dùng repo và `.venv` riêng. Ba phương pháp gốc đọc `LLM_*`
+từ `.env`; Codex dùng xác thực Codex/OpenAI và `CODEX_MODEL` hoặc `--codex-model`.
+Xem `.env.example` và [hướng dẫn cài đặt](notes/setup.md).
 Script chung: `scripts/run_comparison.py`; mặc định full dev, dùng `--count 20`
 để chạy thử. Các tùy chọn nằm trong [hướng dẫn chạy](notes/full-dev.md).
 
@@ -60,12 +62,9 @@ text2sql/
 | DAIL-SQL | 82,79% |
 | Codex MCP SQL | 76,69% |
 
-Cả bốn có đủ 1.034 prediction. Codex đúng 793 câu, không còn lỗi runner; kiểm tra
-241 câu EX sai chưa phát hiện lỗi parse hoặc chuẩn hóa gây mất điểm. Codex dùng
-`gpt-6-luna`, effort `low`, tối đa 4 worker qua SDK; ba phương pháp gốc dùng
-`cx/gpt-6-luna` qua proxy, nên đây là so sánh hệ thống với cấu hình inference khác nhau.
- Độ khó: 248 easy, 446 medium, 174 hard, 166 extra.
-Xem [báo cáo EX](results/full_dev/report.md).
+Cả bốn có đủ 1.034 prediction không rỗng. Độ khó: 248 easy, 446 medium,
+174 hard, 166 extra. Xem [báo cáo so sánh](results/full_dev/report.md) để đọc
+cấu hình, EX theo độ khó và phạm vi kiểm tra prediction.
 
 SQLite EX thực thi trực tiếp, giữ DISTINCT, literal và số dòng trùng;
 cho phép hoán vị cột nhất quán, xét thứ tự dòng khi gold có ORDER BY ngoài cùng.

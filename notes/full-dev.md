@@ -13,7 +13,13 @@ uv run --no-project python scripts/run_comparison.py
 
 Script mặc định dùng toàn bộ 1.034 câu Spider dev, chạy DIN-SQL, MAC-SQL và
 DAIL-SQL theo thứ tự, rồi chuẩn hóa và chấm SQLite EX.
-Các bước inference gọi endpoint LLM trong `.env`.
+Ba phương pháp này gọi endpoint LLM trong `.env`. Để chạy mới cả bốn phương pháp:
+
+```bash
+uv run --no-project python scripts/run_comparison.py \
+  --methods few_shot mac_sql dail_sql codex_mcp \
+  --codex-model gpt-6-luna --workers 4 --output results/all_methods_new
+```
 
 ## Chọn lượt chạy
 
@@ -48,7 +54,7 @@ Script không ghi đè raw inference đã có. Để chạy mới, chọn `--out
 uv run --no-project python scripts/run_comparison.py --output results/full_dev_new
 ```
 
-Chấm lại kết quả hiện có:
+Chấm lại raw của ba phương pháp mặc định:
 
 ```bash
 uv run --no-project python scripts/run_comparison.py --evaluate-only
@@ -139,3 +145,10 @@ SQLite chạy query read-only, mặc định giới hạn 10 giây mỗi query, 
 literal và số dòng trùng; cho phép hoán vị cột nhất quán và xét thứ tự khi gold
 có ORDER BY ngoài cùng. UTF-8 lỗi được bỏ qua khi giải mã; lỗi gold làm lượt chấm
 thất bại. Đây là EX trên một database cho mỗi câu, không phải test-suite accuracy.
+
+[Báo cáo đã công bố](../results/full_dev/report.md) và hai CSV cạnh nó tổng hợp
+ba phương pháp gốc từ `results/full_dev/` với Codex từ `results/codex_full_dev/`.
+Đó là hai thư mục raw riêng. Chạy `--evaluate-only` mặc định chỉ chấm ba phương
+pháp và sẽ thay báo cáo bằng ba dòng; chọn output khác nếu muốn giữ bản tổng hợp.
+Lệnh chấm cả bốn trong một output ở trên chỉ dùng khi output đó đã có raw cả bốn.
+Phạm vi audit bổ sung được mô tả trong [ghi chú kiểm tra prediction](prediction-audit.md).

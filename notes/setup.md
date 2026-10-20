@@ -1,7 +1,7 @@
 # Cài môi trường bằng uv
 
-Dùng Python 3.9 để tương thích với thư viện của các phương pháp.
-Mỗi repo có môi trường riêng.
+Comparison, DIN-SQL, MAC-SQL và DAIL-SQL dùng Python 3.9; Codex MCP SQL dùng
+Python 3.12. Mỗi repo có môi trường riêng. Chỉ cài các phương pháp cần chạy.
 
 Chạy từ `text2sql-comparison/`, với `uv` đã được cài:
 
