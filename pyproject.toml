@@ -1,7 +1,7 @@
 [project]
 name = "text2sql-comparison"
 version = "0.1.0"
-description = "Fixed-subset normalization and official Spider execution evaluation"
+description = "Full Spider dev comparison of DIN-SQL, MAC-SQL and DAIL-SQL"
 requires-python = ">=3.9"
 dependencies = ["nltk>=3.8,<4"]
 
