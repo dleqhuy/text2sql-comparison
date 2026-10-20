@@ -19,6 +19,7 @@ from common import (
 from prepare_data import prepare
 from normalize_few_shot import normalize as normalize_text
 from normalize_mac_sql import normalize as normalize_mac
+from normalize_codex_mcp import normalize as normalize_codex
 from evaluate import evaluate, parse_scores, validate_predictions, INVALID_SQL
 
 
@@ -63,6 +64,17 @@ class WorkflowTest(unittest.TestCase):
         path.write_text((json.dumps(record) + "\n") * 2)
         with self.assertRaises(ValueError):
             normalize_mac(path, self.rows)
+
+    def test_codex_validates_alignment_and_preserves_failed_predictions(self):
+        path = self.root / "codex.jsonl"
+        write_predictions(self.rows, ["SELECT 1", ""], path)
+        self.assertEqual(normalize_codex(path, self.rows), ["SELECT 1", ""])
+        write_predictions(self.rows[::-1], ["SELECT 1", ""], path)
+        with self.assertRaises(ValueError):
+            normalize_codex(path, self.rows)
+        write_predictions(self.rows[:1], ["SELECT 1"], path)
+        with self.assertRaises(ValueError):
+            normalize_codex(path, self.rows)
 
     def test_rejects_shuffled_normalized_predictions(self):
         path = self.root / "pred.jsonl"

@@ -1,27 +1,42 @@
-"""Run DIN-SQL, MAC-SQL and DAIL-SQL on full Spider dev or its first N examples."""
+"""Run Text-to-SQL methods on full Spider dev or its first N examples."""
 
 import argparse
 import os
-from pathlib import Path
 import shlex
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 from common import ROOT, read_json
 
-METHODS = ("few_shot", "mac_sql", "dail_sql")
+DEFAULT_METHODS = ("few_shot", "mac_sql", "dail_sql")
+METHODS = (*DEFAULT_METHODS, "codex_mcp")
 REPOS = {
     "few_shot": "Few-shot-NL2SQL-with-prompting",
     "mac_sql": "MAC-SQL",
     "dail_sql": "DAIL-SQL",
+    "codex_mcp": "codex-mcp-sql",
 }
 
 
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("--count", type=int, help="First N dev examples; default: all")
-    result.add_argument("--methods", nargs="+", choices=METHODS, default=list(METHODS))
+    result.add_argument(
+        "--methods", nargs="+", choices=METHODS, default=list(DEFAULT_METHODS)
+    )
+    result.add_argument("--codex-model", help="Codex model; defaults to CODEX_MODEL")
+    result.add_argument(
+        "--codex-reasoning-effort",
+        default="low",
+        choices=["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"],
+    )
+    result.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume an existing --methods codex_mcp run",
+    )
     result.add_argument(
         "--spider-data", type=Path, default=ROOT / "downloads/spider_data"
     )
@@ -50,6 +65,10 @@ class Comparison:
             raise ValueError("--count must be positive")
         if len(set(args.methods)) != len(args.methods):
             raise ValueError("--methods must not contain duplicates")
+        if args.resume and (args.methods != ["codex_mcp"] or args.evaluate_only):
+            raise ValueError(
+                "--resume requires --methods codex_mcp without --evaluate-only"
+            )
         self.args = args
         self.source = args.spider_data.resolve()
         dev = read_json(self.source / "dev.json")
@@ -65,16 +84,23 @@ class Comparison:
         self.env = dict(os.environ)
         self.env.setdefault("NLTK_DATA", "/private/tmp/text2sql-nltk")
         self.env["PYTHONUNBUFFERED"] = "1"
+        self.codex_model = args.codex_model or self.env.get("CODEX_MODEL")
+
+    def codex_run(self):
+        return self.output / "raw/codex_mcp"
 
     def raw(self, method):
+        if method == "codex_mcp":
+            return self.codex_run() / "predictions.jsonl"
         suffix = "jsonl" if method == "mac_sql" else "txt"
         return self.output / "raw" / f"{method}.{suffix}"
 
     def validate(self):
         expected = [f"dev_{i:04d}" for i in range(self.count)]
-        if (self.data / "subset.json").exists():
-            if read_json(self.data / "subset.json") != expected:
-                raise ValueError(f"Dataset selection differs from --count: {self.data}")
+        if (self.data / "subset.json").exists() and read_json(
+            self.data / "subset.json"
+        ) != expected:
+            raise ValueError(f"Dataset selection differs from --count: {self.data}")
         if self.args.evaluate_only:
             for name in ("examples.json", "tables.json", "subset.json"):
                 if not (self.data / name).is_file():
@@ -83,9 +109,23 @@ class Comparison:
                 if not self.raw(method).is_file():
                     raise FileNotFoundError(self.raw(method))
             return
+        if "codex_mcp" in self.args.methods and not self.args.dry_run:
+            if not self.codex_model:
+                raise ValueError("Set --codex-model or CODEX_MODEL for codex_mcp")
+            if self.args.resume:
+                if not (self.codex_run() / "metadata.json").is_file():
+                    raise FileNotFoundError(self.codex_run() / "metadata.json")
+            elif self.codex_run().exists():
+                raise FileExistsError(
+                    f"Existing Codex run: {self.codex_run()}; use --resume or another --output"
+                )
         # Never overwrite inference or silently reuse an earlier MAC-SQL run.
         for method in self.args.methods:
-            if not self.args.dry_run and self.raw(method).exists():
+            if (
+                not self.args.dry_run
+                and self.raw(method).exists()
+                and not self.args.resume
+            ):
                 raise FileExistsError(
                     f"Existing output: {self.raw(method)}; choose another --output or --evaluate-only"
                 )
@@ -98,9 +138,10 @@ class Comparison:
                 f"Existing DAIL workspace: {self.output / 'dail_work'}; choose another --output"
             )
         if not self.args.dry_run:
-            for key in ("LLM_MODEL", "LLM_API_KEY", "LLM_BASE_URL"):
-                if not self.env.get(key):
-                    raise ValueError(f"Set {key} by sourcing .env first")
+            if any(method != "codex_mcp" for method in self.args.methods):
+                for key in ("LLM_MODEL", "LLM_API_KEY", "LLM_BASE_URL"):
+                    if not self.env.get(key):
+                        raise ValueError(f"Set {key} by sourcing .env first")
             for method in self.args.methods:
                 python = ROOT.parent / REPOS[method] / ".venv/bin/python"
                 if not python.is_file():
@@ -114,7 +155,7 @@ class Comparison:
                     if not (self.source / name).is_file():
                         raise FileNotFoundError(self.source / name)
 
-    def command(self, argv, cwd=ROOT, log=None):
+    def command(self, argv, cwd=ROOT, log=None, allowed_codes=(0,), append=False):
         argv = list(map(str, argv))
         print(f"[{cwd}] {shlex.join(argv)}", flush=True)
         if self.args.dry_run:
@@ -123,24 +164,70 @@ class Comparison:
             subprocess.run(argv, cwd=cwd, env=self.env, check=True)
         else:
             log.parent.mkdir(parents=True, exist_ok=True)
-            with log.open("w") as stream:
-                try:
-                    subprocess.run(
-                        argv,
-                        cwd=cwd,
-                        env=self.env,
-                        stdin=subprocess.DEVNULL,
-                        stdout=stream,
-                        stderr=subprocess.STDOUT,
-                        check=True,
+            with log.open("a" if append else "w") as stream:
+                result = subprocess.run(
+                    argv,
+                    cwd=cwd,
+                    env=self.env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=stream,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                )
+                if result.returncode not in allowed_codes:
+                    raise RuntimeError(
+                        f"Step failed (exit {result.returncode}); see {log}"
                     )
-                except subprocess.CalledProcessError as error:
-                    raise RuntimeError(f"Step failed; see {log}") from error
 
     def copy(self, source, target):
         print(f"Copy {source} -> {target}", flush=True)
         if not self.args.dry_run:
             shutil.copy2(source, target)
+
+    def require_codex_complete(self):
+        if self.args.dry_run:
+            return
+        summary = read_json(self.codex_run() / "summary.json")
+        if (
+            summary.get("examples") != self.count
+            or summary.get("completed", 0) + summary.get("failed", 0) != self.count
+            or summary.get("pending", 0)
+            or summary.get("stop_reason")
+        ):
+            raise RuntimeError(
+                "Codex run is incomplete; after usage resets, rerun with "
+                "--methods codex_mcp --resume and the same --count/--output/model. "
+                f"See {self.codex_run() / 'summary.json'}"
+            )
+
+    def codex(self):
+        repo = ROOT.parent / REPOS["codex_mcp"]
+        argv = [
+            repo / ".venv/bin/python",
+            "-m",
+            "codex_mcp_sql.runner",
+            "--examples",
+            self.data / "examples.json",
+            "--db-root",
+            self.source / "database",
+            "--output",
+            self.codex_run(),
+            "--model",
+            self.codex_model or "<CODEX_MODEL>",
+            "--reasoning-effort",
+            self.args.codex_reasoning_effort,
+        ]
+        if self.args.resume:
+            argv.append("--resume")
+        # Exit 1 also covers completed runs with failed questions, which score as wrong.
+        self.command(
+            argv,
+            repo,
+            self.output / "raw/codex_mcp.log",
+            allowed_codes=(0, 1),
+            append=self.args.resume,
+        )
+        self.require_codex_complete()
 
     def dail(self):
         repo = ROOT.parent / REPOS["dail_sql"]
@@ -222,12 +309,10 @@ class Comparison:
                 work
                 / f"dataset/process/SPIDER-TEST_SQL_9-SHOT_{selector}_QA-EXAMPLE_CTX-200_ANS-4096"
             )
-            if not self.args.dry_run:
-                if (
-                    len(read_json(prompts / "questions.json")["questions"])
-                    != self.count
-                ):
-                    raise ValueError("DAIL prompt count differs from dataset")
+            if not self.args.dry_run and (
+                len(read_json(prompts / "questions.json")["questions"]) != self.count
+            ):
+                raise ValueError("DAIL prompt count differs from dataset")
             command(
                 "ask_llm.py",
                 "--n",
@@ -307,9 +392,13 @@ class Comparison:
                         repo,
                         self.output / "raw/mac_sql.log",
                     )
-                else:
+                elif method == "dail_sql":
                     self.dail()
+                else:
+                    self.codex()
         for method in self.args.methods:
+            if method == "codex_mcp":
+                self.require_codex_complete()
             self.command(
                 [
                     sys.executable,
