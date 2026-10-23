@@ -1,5 +1,8 @@
 # Chạy toàn bộ Spider dev
 
+Xem [luồng xử lý và cách chạy riêng từng phương pháp](methods.md) để hiểu
+DIN-SQL, MAC-SQL, DAIL-SQL và Codex MCP SQL qua sơ đồ text.
+
 Sau khi [cài môi trường](setup.md), chạy từ `text2sql-comparison/`:
 
 ```bash

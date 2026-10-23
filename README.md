@@ -10,7 +10,10 @@ Mặc định CLI chạy DIN-SQL, MAC-SQL và DAIL-SQL; chọn cả bốn bằng
 
 1. [Cài môi trường và tài nguyên](notes/setup.md).
 2. [Chạy full dev và chấm điểm](notes/full-dev.md).
-3. [Cấu hình phương pháp và phiên bản](notes/versions.md).
+3. [Tổng quan luồng xử lý](notes/methods.md) và hướng dẫn riêng:
+   [DIN-SQL](notes/din-sql.md), [MAC-SQL](notes/mac-sql.md),
+   [DAIL-SQL](notes/dail-sql.md), [Codex MCP SQL](notes/codex-mcp-sql.md).
+4. [Cấu hình phương pháp và phiên bản](notes/versions.md).
 
 Cần kiểm tra pipeline trước: [chạy thử 20 câu](notes/smoke20.md).
 
