@@ -6,6 +6,14 @@ chấm SQLite EX. Cấu hình model/backend nằm trong [báo cáo so sánh](res
 Mặc định CLI chạy DIN-SQL, MAC-SQL và DAIL-SQL; chọn cả bốn bằng
 `--methods few_shot mac_sql dail_sql codex_mcp`.
 
+## Các repo đã fork
+
+| Phương pháp | Repo fork | Repo gốc |
+|---|---|---|
+| DIN-SQL | [dleqhuy/Few-shot-NL2SQL-with-prompting](https://github.com/dleqhuy/Few-shot-NL2SQL-with-prompting) | [MohammadrezaPourreza/Few-shot-NL2SQL-with-prompting](https://github.com/MohammadrezaPourreza/Few-shot-NL2SQL-with-prompting) |
+| MAC-SQL | [dleqhuy/MAC-SQL](https://github.com/dleqhuy/MAC-SQL) | [wbbeyourself/MAC-SQL](https://github.com/wbbeyourself/MAC-SQL) |
+| DAIL-SQL | [dleqhuy/DAIL-SQL](https://github.com/dleqhuy/DAIL-SQL) | [BeachWang/DAIL-SQL](https://github.com/BeachWang/DAIL-SQL) |
+
 ## Chạy
 
 Giới thiệu dữ liệu: [Spider 1.0, cấu trúc mẫu, train/dev và cách chấm](notes/dataset.md).
