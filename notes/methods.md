@@ -5,6 +5,8 @@ Tên `few_shot` trong CLI tương ứng với DIN-SQL, không phải một basel
 khác. Xem [cài môi trường](setup.md) trước khi chạy; cấu hình chi tiết nằm ở
 [versions.md](versions.md).
 
+Input đánh giá được mô tả trong [giới thiệu dataset Spider 1.0](dataset.md).
+
 ## Hướng dẫn từng phương pháp
 
 Mỗi file có sơ đồ text, phần chuẩn bị, lệnh chạy riêng, vị trí log/output và

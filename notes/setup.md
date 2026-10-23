@@ -55,6 +55,9 @@ Chỉ copy `.env.example` khi chưa có `.env`, rồi điền API key. Không gh
 
 ## Dữ liệu
 
+Xem [giới thiệu Spider 1.0](dataset.md) để hiểu cấu trúc file, vai trò train/dev
+và phạm vi 1.034 câu được chấm trong workspace.
+
 Tải [Spider 1.0 chính thức](https://yale-lily.github.io/spider), giải nén để có:
 
 ```text

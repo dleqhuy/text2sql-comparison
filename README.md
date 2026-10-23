@@ -8,6 +8,8 @@ Mặc định CLI chạy DIN-SQL, MAC-SQL và DAIL-SQL; chọn cả bốn bằng
 
 ## Chạy
 
+Giới thiệu dữ liệu: [Spider 1.0, cấu trúc mẫu, train/dev và cách chấm](notes/dataset.md).
+
 1. [Cài môi trường và tài nguyên](notes/setup.md).
 2. [Chạy full dev và chấm điểm](notes/full-dev.md).
 3. [Tổng quan luồng xử lý](notes/methods.md) và hướng dẫn riêng:
