@@ -25,3 +25,18 @@ __pycache__/
 
 # Previous local runs and temporary experiment files
 /.local_archive/
+
+# Full-stack application artifacts
+node_modules/
+frontend/dist/
+backend/app/frontend/
+frontend/openapi.json
+*.tsbuildinfo
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+
+# Frontend test artifacts and authentication state
+frontend/playwright/.auth/
+frontend/playwright-report/
+frontend/test-results/
