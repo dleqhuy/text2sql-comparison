@@ -1,0 +1,8 @@
+{
+  "name": "sql-lab-compat",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix .. run dev",
+    "build": "npm --prefix ../frontend run build"
+  }
+}

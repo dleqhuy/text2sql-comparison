@@ -1,0 +1,20 @@
+# Optional alternative to npm run dev's workspace PostgreSQL.
+# Supply POSTGRES_PASSWORD and use the matching DATABASE_URL in .env.
+services:
+  db:
+    image: postgres:18
+    ports:
+      - "127.0.0.1:55432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD for Docker PostgreSQL}
+    volumes:
+      - app-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  app-db-data:

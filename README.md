@@ -16,6 +16,12 @@ Mặc định CLI chạy DIN-SQL, MAC-SQL và DAIL-SQL; chọn cả bốn bằng
 
 ## Chạy
 
+**Ứng dụng SQL / Lab — frontend/backend từ Full Stack FastAPI Template:**
+chạy `npm ci`, `uv sync --project backend --locked`, `npm run setup:env`, rồi
+`npm run dev`. Mở <http://127.0.0.1:5173> để vào thẳng dashboard, không cần tài khoản.
+React/TypeScript có timeline và prompt/response inspector; FastAPI phục vụ API/SSE,
+PostgreSQL lưu lịch sử chung của workspace. Xem [hướng dẫn SQL / Lab](notes/live.md).
+
 Giới thiệu dữ liệu: [Spider 1.0, cấu trúc mẫu, train/dev và cách chấm](notes/dataset.md).
 
 1. [Cài môi trường và tài nguyên](notes/setup.md).
