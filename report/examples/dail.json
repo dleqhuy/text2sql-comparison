@@ -1,0 +1,195 @@
+{
+  "meta": {
+    "id": "2b92fef50db2",
+    "question": "How many ships ended up being 'Captured'?",
+    "db_id": "battle_death",
+    "methods": [
+      "dail_sql"
+    ],
+    "example_index": 491,
+    "started_at": 1794327250.5801861,
+    "status": "completed",
+    "models": {
+      "dail_sql": "cx/gpt-6-luna"
+    },
+    "finished_at": 1794327403.531895
+  },
+  "events": [
+    {
+      "time": 1794327254.850986,
+      "method": "dail_sql",
+      "kind": "finish",
+      "stage": "Preprocessing",
+      "output": {
+        "examples": 1,
+        "training_cache_reused": true,
+        "training_data": "Spider train + train_others"
+      },
+      "elapsed": 3.4059085829999995
+    },
+    {
+      "time": 1794327325.389432,
+      "method": "dail_sql",
+      "kind": "finish",
+      "stage": "Example selection · pass 1",
+      "output": {
+        "examples": [
+          {
+            "db_id": "hospital_1",
+            "question": "What are the names of all the physicians who took appointments.",
+            "query": "SELECT T2.name FROM appointment AS T1 JOIN physician AS T2 ON T1.Physician  =  T2.EmployeeID"
+          },
+          {
+            "db_id": "storm_record",
+            "question": "How many regions were affected by each storm?",
+            "query": "SELECT T1.name ,  count(*) FROM storm AS T1 JOIN affected_region AS T2 ON T1.storm_id  =  T2.storm_id GROUP BY T1.storm_id"
+          },
+          {
+            "db_id": "music_1",
+            "question": "For each file format, return the number of artists who released songs in that format.",
+            "query": "SELECT count(*) ,  formats FROM files GROUP BY formats"
+          },
+          {
+            "db_id": "music_1",
+            "question": "How many songs were released for each format?",
+            "query": "SELECT count(*) ,  formats FROM files GROUP BY formats"
+          },
+          {
+            "db_id": "driving_school",
+            "question": "How many lessons did the customer with the first name Ray take?",
+            "query": "SELECT count(*) FROM Lessons AS T1 JOIN Customers AS T2 ON T1.customer_id  = T2.customer_id WHERE T2.first_name = \"Ray\""
+          },
+          {
+            "db_id": "assets_maintenance",
+            "question": "How many engineers did each staff contact? List both the contact staff name and number of engineers contacted.",
+            "query": "SELECT T1.staff_name ,  count(*) FROM Staff AS T1 JOIN Engineer_Visits AS T2 ON T1.staff_id  =  T2.contact_staff_id GROUP BY T1.staff_name"
+          },
+          {
+            "db_id": "wrestler",
+            "question": "How many eliminations did each team have?",
+            "query": "SELECT Team ,  COUNT(*) FROM elimination GROUP BY Team"
+          },
+          {
+            "db_id": "cre_Theme_park",
+            "question": "How many tourists did not make any visit?",
+            "query": "SELECT count(*) FROM Visitors WHERE Tourist_ID NOT IN ( SELECT Tourist_ID FROM Visits )"
+          },
+          {
+            "db_id": "epinions_1",
+            "question": "How many different items were reviewed by some users?",
+            "query": "SELECT count(DISTINCT i_id) FROM review"
+          }
+        ],
+        "n_examples": 9,
+        "prompt": "/* Some SQL examples are provided based on similar problems: */\n/* Answer the following: What are the names of all the physicians who took appointments. */\nSELECT T2.name FROM appointment AS T1 JOIN physician AS T2 ON T1.Physician  =  T2.EmployeeID\n\n/* Answer the following: How many regions were affected by each storm? */\nSELECT T1.name ,  count(*) FROM storm AS T1 JOIN affected_region AS T2 ON T1.storm_id  =  T2.storm_id GROUP BY T1.storm_id\n\n/* Answer the following: For each file format, return the number of artists who released songs in that format. */\nSELECT count(*) ,  formats FROM files GROUP BY formats\n\n/* Answer the following: How many songs were released for each format? */\nSELECT count(*) ,  formats FROM files GROUP BY formats\n\n/* Answer the following: How many lessons did the customer with the first name Ray take? */\nSELECT count(*) FROM Lessons AS T1 JOIN Customers AS T2 ON T1.customer_id  = T2.customer_id WHERE T2.first_name = \"Ray\"\n\n/* Answer the following: How many engineers did each staff contact? List both the contact staff name and number of engineers contacted. */\nSELECT T1.staff_name ,  count(*) FROM Staff AS T1 JOIN Engineer_Visits AS T2 ON T1.staff_id  =  T2.contact_staff_id GROUP BY T1.staff_name\n\n/* Answer the following: How many eliminations did each team have? */\nSELECT Team ,  COUNT(*) FROM elimination GROUP BY Team\n\n/* Answer the following: How many tourists did not make any visit? */\nSELECT count(*) FROM Visitors WHERE Tourist_ID NOT IN ( SELECT Tourist_ID FROM Visits )\n\n/* Answer the following: How many different items were reviewed by some users? */\nSELECT count(DISTINCT i_id) FROM review\n\n/* Given the following database schema: */\nCREATE TABLE \"battle\" (\n\"id\" int,\n\"name\" text,\n\"date\" text,\n\"bulgarian_commander\" text,\n\"latin_commander\" text,\n\"result\" text,\nprimary key(\"id\")\n)\n\nCREATE TABLE \"ship\" (\n\"lost_in_battle\" int,\n\"id\" int,\n\"name\" text,\n\"tonnage\" text,\n\"ship_type\" text,\n\"location\" text,\n\"disposition_of_ship\" text,\nprimary key(\"id\"),\nforeign key (`lost_in_battle`) references `battle`(\"id\") \n)\n\nCREATE TABLE \"death\" (\n\"caused_by_ship_id\" int,\n\"id\" int,\n\"note\" text,\n\"killed\" int,\n\"injured\" int,\nprimary key(\"id\"),\nforeign key (\"caused_by_ship_id\") references `ship`(\"id\") \n)\n\n/* Answer the following: How many ships ended up being 'Captured'? */\nSELECT ",
+        "db_id": "battle_death"
+      },
+      "elapsed": 70.53783349999999
+    },
+    {
+      "time": 1794327327.772032,
+      "method": "dail_sql",
+      "kind": "finish",
+      "stage": "SQL generation · pass 1",
+      "output": "SELECT COUNT(*) FROM ship WHERE disposition_of_ship = 'Captured';",
+      "elapsed": 2.3047977079999953
+    },
+    {
+      "time": 1794327400.778972,
+      "method": "dail_sql",
+      "kind": "finish",
+      "stage": "Example selection · pass 2",
+      "output": {
+        "examples": [
+          {
+            "db_id": "driving_school",
+            "question": "How many lessons did the customer with the first name Ray take?",
+            "query": "SELECT count(*) FROM Lessons AS T1 JOIN Customers AS T2 ON T1.customer_id  = T2.customer_id WHERE T2.first_name = \"Ray\""
+          },
+          {
+            "db_id": "hospital_1",
+            "question": "Count the number of patients who stayed in room 112.",
+            "query": "SELECT count(patient) FROM stay WHERE room  =  112"
+          },
+          {
+            "db_id": "imdb",
+            "question": "How many actors are in the movie \" Saving Private Ryan \" ?",
+            "query": "SELECT COUNT ( DISTINCT t1.name  ) FROM CAST AS t2 JOIN actor AS t1 ON t2.aid  =  t1.aid JOIN movie AS t3 ON t3.mid  =  t2.msid WHERE t3.title  =  \"Saving Private Ryan\";"
+          },
+          {
+            "db_id": "allergy_1",
+            "question": "How many students have cat allergies?",
+            "query": "SELECT count(*) FROM Has_allergy WHERE Allergy  =  \"Cat\""
+          },
+          {
+            "db_id": "imdb",
+            "question": "What is the number of actors in the movie \" Saving Private Ryan \" ?",
+            "query": "SELECT COUNT ( DISTINCT t1.name  ) FROM CAST AS t2 JOIN actor AS t1 ON t2.aid  =  t1.aid JOIN movie AS t3 ON t3.mid  =  t2.msid WHERE t3.title  =  \"Saving Private Ryan\";"
+          },
+          {
+            "db_id": "driving_school",
+            "question": "How many lessons were in cancelled state?",
+            "query": "SELECT count(*) FROM Lessons WHERE lesson_status_code = \"Cancelled\";"
+          },
+          {
+            "db_id": "coffee_shop",
+            "question": "How many members have the black membership card?",
+            "query": "SELECT count(*) FROM member WHERE Membership_card  =  'Black'"
+          },
+          {
+            "db_id": "driving_school",
+            "question": "How many staff have the first name Ludie?",
+            "query": "SELECT count(*) FROM Staff WHERE first_name = \"Ludie\";"
+          },
+          {
+            "db_id": "hospital_1",
+            "question": "How many patients stay in room 112?",
+            "query": "SELECT count(patient) FROM stay WHERE room  =  112"
+          }
+        ],
+        "n_examples": 9,
+        "prompt": "/* Some SQL examples are provided based on similar problems: */\n/* Answer the following: How many lessons did the customer with the first name Ray take? */\nSELECT count(*) FROM Lessons AS T1 JOIN Customers AS T2 ON T1.customer_id  = T2.customer_id WHERE T2.first_name = \"Ray\"\n\n/* Answer the following: Count the number of patients who stayed in room 112. */\nSELECT count(patient) FROM stay WHERE room  =  112\n\n/* Answer the following: How many actors are in the movie \" Saving Private Ryan \" ? */\nSELECT COUNT ( DISTINCT t1.name  ) FROM CAST AS t2 JOIN actor AS t1 ON t2.aid  =  t1.aid JOIN movie AS t3 ON t3.mid  =  t2.msid WHERE t3.title  =  \"Saving Private Ryan\";\n\n/* Answer the following: How many students have cat allergies? */\nSELECT count(*) FROM Has_allergy WHERE Allergy  =  \"Cat\"\n\n/* Answer the following: What is the number of actors in the movie \" Saving Private Ryan \" ? */\nSELECT COUNT ( DISTINCT t1.name  ) FROM CAST AS t2 JOIN actor AS t1 ON t2.aid  =  t1.aid JOIN movie AS t3 ON t3.mid  =  t2.msid WHERE t3.title  =  \"Saving Private Ryan\";\n\n/* Answer the following: How many lessons were in cancelled state? */\nSELECT count(*) FROM Lessons WHERE lesson_status_code = \"Cancelled\";\n\n/* Answer the following: How many members have the black membership card? */\nSELECT count(*) FROM member WHERE Membership_card  =  'Black'\n\n/* Answer the following: How many staff have the first name Ludie? */\nSELECT count(*) FROM Staff WHERE first_name = \"Ludie\";\n\n/* Answer the following: How many patients stay in room 112? */\nSELECT count(patient) FROM stay WHERE room  =  112\n\n/* Given the following database schema: */\nCREATE TABLE \"battle\" (\n\"id\" int,\n\"name\" text,\n\"date\" text,\n\"bulgarian_commander\" text,\n\"latin_commander\" text,\n\"result\" text,\nprimary key(\"id\")\n)\n\nCREATE TABLE \"ship\" (\n\"lost_in_battle\" int,\n\"id\" int,\n\"name\" text,\n\"tonnage\" text,\n\"ship_type\" text,\n\"location\" text,\n\"disposition_of_ship\" text,\nprimary key(\"id\"),\nforeign key (`lost_in_battle`) references `battle`(\"id\") \n)\n\nCREATE TABLE \"death\" (\n\"caused_by_ship_id\" int,\n\"id\" int,\n\"note\" text,\n\"killed\" int,\n\"injured\" int,\nprimary key(\"id\"),\nforeign key (\"caused_by_ship_id\") references `ship`(\"id\") \n)\n\n/* Answer the following: How many ships ended up being 'Captured'? */\nSELECT ",
+        "db_id": "battle_death"
+      },
+      "elapsed": 73.00605979199999
+    },
+    {
+      "time": 1794327403.196107,
+      "method": "dail_sql",
+      "kind": "finish",
+      "stage": "SQL generation · pass 2",
+      "output": "SELECT COUNT(*) FROM ship WHERE disposition_of_ship = 'Captured';",
+      "elapsed": 2.3829684170000007
+    },
+    {
+      "time": 1794327403.197123,
+      "method": "dail_sql",
+      "kind": "result",
+      "stage": "Final SQL",
+      "output": "SELECT COUNT(*) FROM ship WHERE disposition_of_ship = 'Captured';",
+      "elapsed": 152.56947420900002
+    },
+    {
+      "time": 1794327403.5316741,
+      "method": "dail_sql",
+      "kind": "finish",
+      "stage": "SQLite execution",
+      "output": {
+        "columns": [
+          "COUNT(*)"
+        ],
+        "rows": [
+          [
+            4
+          ]
+        ],
+        "truncated": false,
+        "evaluation": {
+          "correct": true,
+          "metric": "SQLite EX",
+          "gold_sql": "SELECT count(*) FROM ship WHERE disposition_of_ship  =  'Captured'"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "meta": {
+    "question": "How many ships ended up being 'Captured'?",
+    "db_id": "battle_death",
+    "methods": [
+      "din_sql",
+      "mac_sql",
+      "codex_mcp"
+    ],
+    "example_index": 491,
+    "id": "c9a7a364f737",
+    "status": "completed",
+    "started_at": 1794153172.627462,
+    "finished_at": 1794153204.21374,
+    "error": null,
+    "models": {
+      "din_sql": "cx/gpt-6-luna",
+      "mac_sql": "cx/gpt-6-luna",
+      "codex_mcp": "gpt-6-luna"
+    }
+  },
+  "events": [
+    {
+      "time": 1794153184.114068,
+      "method": "din_sql",
+      "kind": "result",
+      "stage": "Final SQL",
+      "input": null,
+      "output": "SELECT COUNT(*) FROM ship WHERE disposition_of_ship = 'Captured'",
+      "elapsed": 11.306647333
+    },
+    {
+      "time": 1794153184.3573918,
+      "method": "din_sql",
+      "kind": "finish",
+      "stage": "SQLite execution",
+      "input": null,
+      "output": {
+        "columns": [
+          "COUNT(*)"
+        ],
+        "rows": [
+          [
+            4
+          ]
+        ],
+        "truncated": false,
+        "evaluation": {
+          "correct": true,
+          "metric": "SQLite EX",
+          "gold_sql": "SELECT count(*) FROM ship WHERE disposition_of_ship  =  'Captured'"
+        }
+      },
+      "elapsed": null
+    },
+    {
+      "time": 1794153191.29726,
+      "method": "mac_sql",
+      "kind": "result",
+      "stage": "Final SQL",
+      "input": null,
+      "output": "SELECT COUNT(*)\nFROM ship\nWHERE disposition_of_ship = 'Captured';",
+      "elapsed": 6.873765291
+    },
+    {
+      "time": 1794153191.4598558,
+      "method": "mac_sql",
+      "kind": "finish",
+      "stage": "SQLite execution",
+      "input": null,
+      "output": {
+        "columns": [
+          "COUNT(*)"
+        ],
+        "rows": [
+          [
+            4
+          ]
+        ],
+        "truncated": false,
+        "evaluation": {
+          "correct": true,
+          "metric": "SQLite EX",
+          "gold_sql": "SELECT count(*) FROM ship WHERE disposition_of_ship  =  'Captured'"
+        }
+      },
+      "elapsed": null
+    },
+    {
+      "time": 1794153198.924899,
+      "method": "codex_mcp",
+      "kind": "error",
+      "stage": "search_objects",
+      "input": {
+        "query": "ship",
+        "object_type": "all",
+        "limit": 100,
+        "offset": 0
+      },
+      "output": "limit must be 1..50 and offset must be nonnegative",
+      "elapsed": 6.8338122218847275e-06
+    },
+    {
+      "time": 1794153204.08944,
+      "method": "codex_mcp",
+      "kind": "result",
+      "stage": "Final SQL",
+      "input": null,
+      "output": "SELECT COUNT(*) AS captured_ship_count FROM ship WHERE disposition_of_ship = 'Captured';",
+      "elapsed": 12.552796624833718
+    },
+    {
+      "time": 1794153204.2135308,
+      "method": "codex_mcp",
+      "kind": "finish",
+      "stage": "SQLite execution",
+      "input": null,
+      "output": {
+        "columns": [
+          "captured_ship_count"
+        ],
+        "rows": [
+          [
+            4
+          ]
+        ],
+        "truncated": false,
+        "evaluation": {
+          "correct": true,
+          "metric": "SQLite EX",
+          "gold_sql": "SELECT count(*) FROM ship WHERE disposition_of_ship  =  'Captured'"
+        }
+      },
+      "elapsed": null
+    }
+  ]
+}

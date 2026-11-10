@@ -1,0 +1,1026 @@
+{
+  "meta": {
+    "question": "What are the names of all the countries that became independent after 1950?",
+    "db_id": "world_1",
+    "methods": [
+      "din_sql",
+      "mac_sql",
+      "codex_mcp"
+    ],
+    "example_index": 702,
+    "id": "e32d5aa2f709",
+    "status": "completed",
+    "started_at": 1794152094.335859,
+    "finished_at": 1794152127.665238,
+    "error": null,
+    "models": {
+      "din_sql": "cx/gpt-6-luna",
+      "mac_sql": "cx/gpt-6-luna",
+      "codex_mcp": "gpt-6-luna"
+    }
+  },
+  "events": [
+    {
+      "time": 1794152104.265116,
+      "method": "din_sql",
+      "kind": "result",
+      "stage": "Final SQL",
+      "input": null,
+      "output": "SELECT Name FROM country WHERE IndepYear > 1950;",
+      "elapsed": 9.847603917
+    },
+    {
+      "time": 1794152104.3634508,
+      "method": "din_sql",
+      "kind": "finish",
+      "stage": "SQLite execution",
+      "input": null,
+      "output": {
+        "columns": [
+          "Name"
+        ],
+        "rows": [
+          [
+            "Angola"
+          ],
+          [
+            "United Arab Emirates"
+          ],
+          [
+            "Armenia"
+          ],
+          [
+            "Antigua and Barbuda"
+          ],
+          [
+            "Azerbaijan"
+          ],
+          [
+            "Burundi"
+          ],
+          [
+            "Benin"
+          ],
+          [
+            "Burkina Faso"
+          ],
+          [
+            "Bangladesh"
+          ],
+          [
+            "Bahrain"
+          ],
+          [
+            "Bahamas"
+          ],
+          [
+            "Bosnia and Herzegovina"
+          ],
+          [
+            "Belarus"
+          ],
+          [
+            "Belize"
+          ],
+          [
+            "Barbados"
+          ],
+          [
+            "Brunei"
+          ],
+          [
+            "Botswana"
+          ],
+          [
+            "Central African Republic"
+          ],
+          [
+            "Côte d’Ivoire"
+          ],
+          [
+            "Cameroon"
+          ],
+          [
+            "Congo, The Democratic Republic of the"
+          ],
+          [
+            "Congo"
+          ],
+          [
+            "Comoros"
+          ],
+          [
+            "Cape Verde"
+          ],
+          [
+            "Cyprus"
+          ],
+          [
+            "Czech Republic"
+          ],
+          [
+            "Germany"
+          ],
+          [
+            "Djibouti"
+          ],
+          [
+            "Dominica"
+          ],
+          [
+            "Algeria"
+          ],
+          [
+            "Eritrea"
+          ],
+          [
+            "Estonia"
+          ],
+          [
+            "Fiji Islands"
+          ],
+          [
+            "Micronesia, Federated States of"
+          ],
+          [
+            "Gabon"
+          ],
+          [
+            "Georgia"
+          ],
+          [
+            "Ghana"
+          ],
+          [
+            "Guinea"
+          ],
+          [
+            "Gambia"
+          ],
+          [
+            "Guinea-Bissau"
+          ],
+          [
+            "Equatorial Guinea"
+          ],
+          [
+            "Grenada"
+          ],
+          [
+            "Guyana"
+          ],
+          [
+            "Croatia"
+          ],
+          [
+            "Jamaica"
+          ],
+          [
+            "Kazakstan"
+          ],
+          [
+            "Kenya"
+          ],
+          [
+            "Kyrgyzstan"
+          ],
+          [
+            "Cambodia"
+          ],
+          [
+            "Kiribati"
+          ],
+          [
+            "Saint Kitts and Nevis"
+          ],
+          [
+            "Kuwait"
+          ],
+          [
+            "Laos"
+          ],
+          [
+            "Libyan Arab Jamahiriya"
+          ],
+          [
+            "Saint Lucia"
+          ],
+          [
+            "Lesotho"
+          ],
+          [
+            "Lithuania"
+          ],
+          [
+            "Latvia"
+          ],
+          [
+            "Morocco"
+          ],
+          [
+            "Moldova"
+          ],
+          [
+            "Madagascar"
+          ],
+          [
+            "Maldives"
+          ],
+          [
+            "Marshall Islands"
+          ],
+          [
+            "Macedonia"
+          ],
+          [
+            "Mali"
+          ],
+          [
+            "Malta"
+          ],
+          [
+            "Mozambique"
+          ],
+          [
+            "Mauritania"
+          ],
+          [
+            "Mauritius"
+          ],
+          [
+            "Malawi"
+          ],
+          [
+            "Malaysia"
+          ],
+          [
+            "Namibia"
+          ],
+          [
+            "Niger"
+          ],
+          [
+            "Nigeria"
+          ],
+          [
+            "Nauru"
+          ],
+          [
+            "Oman"
+          ],
+          [
+            "Palau"
+          ],
+          [
+            "Papua New Guinea"
+          ],
+          [
+            "Qatar"
+          ],
+          [
+            "Russian Federation"
+          ],
+          [
+            "Rwanda"
+          ],
+          [
+            "Sudan"
+          ],
+          [
+            "Senegal"
+          ],
+          [
+            "Singapore"
+          ],
+          [
+            "Solomon Islands"
+          ],
+          [
+            "Sierra Leone"
+          ],
+          [
+            "Somalia"
+          ],
+          [
+            "Sao Tome and Principe"
+          ],
+          [
+            "Suriname"
+          ],
+          [
+            "Slovakia"
+          ],
+          [
+            "Slovenia"
+          ],
+          [
+            "Swaziland"
+          ],
+          [
+            "Seychelles"
+          ],
+          [
+            "Chad"
+          ],
+          [
+            "Togo"
+          ],
+          [
+            "Tajikistan"
+          ],
+          [
+            "Turkmenistan"
+          ],
+          [
+            "Tonga"
+          ],
+          [
+            "Trinidad and Tobago"
+          ],
+          [
+            "Tunisia"
+          ]
+        ],
+        "truncated": true,
+        "evaluation": {
+          "correct": true,
+          "metric": "SQLite EX",
+          "gold_sql": "SELECT Name FROM country WHERE IndepYear  >  1950"
+        }
+      },
+      "elapsed": null
+    },
+    {
+      "time": 1794152111.460311,
+      "method": "mac_sql",
+      "kind": "result",
+      "stage": "Final SQL",
+      "input": null,
+      "output": "SELECT `Name`\nFROM country\nWHERE `IndepYear` > 1950;",
+      "elapsed": 7.042717959
+    },
+    {
+      "time": 1794152111.627372,
+      "method": "mac_sql",
+      "kind": "finish",
+      "stage": "SQLite execution",
+      "input": null,
+      "output": {
+        "columns": [
+          "Name"
+        ],
+        "rows": [
+          [
+            "Angola"
+          ],
+          [
+            "United Arab Emirates"
+          ],
+          [
+            "Armenia"
+          ],
+          [
+            "Antigua and Barbuda"
+          ],
+          [
+            "Azerbaijan"
+          ],
+          [
+            "Burundi"
+          ],
+          [
+            "Benin"
+          ],
+          [
+            "Burkina Faso"
+          ],
+          [
+            "Bangladesh"
+          ],
+          [
+            "Bahrain"
+          ],
+          [
+            "Bahamas"
+          ],
+          [
+            "Bosnia and Herzegovina"
+          ],
+          [
+            "Belarus"
+          ],
+          [
+            "Belize"
+          ],
+          [
+            "Barbados"
+          ],
+          [
+            "Brunei"
+          ],
+          [
+            "Botswana"
+          ],
+          [
+            "Central African Republic"
+          ],
+          [
+            "Côte d’Ivoire"
+          ],
+          [
+            "Cameroon"
+          ],
+          [
+            "Congo, The Democratic Republic of the"
+          ],
+          [
+            "Congo"
+          ],
+          [
+            "Comoros"
+          ],
+          [
+            "Cape Verde"
+          ],
+          [
+            "Cyprus"
+          ],
+          [
+            "Czech Republic"
+          ],
+          [
+            "Germany"
+          ],
+          [
+            "Djibouti"
+          ],
+          [
+            "Dominica"
+          ],
+          [
+            "Algeria"
+          ],
+          [
+            "Eritrea"
+          ],
+          [
+            "Estonia"
+          ],
+          [
+            "Fiji Islands"
+          ],
+          [
+            "Micronesia, Federated States of"
+          ],
+          [
+            "Gabon"
+          ],
+          [
+            "Georgia"
+          ],
+          [
+            "Ghana"
+          ],
+          [
+            "Guinea"
+          ],
+          [
+            "Gambia"
+          ],
+          [
+            "Guinea-Bissau"
+          ],
+          [
+            "Equatorial Guinea"
+          ],
+          [
+            "Grenada"
+          ],
+          [
+            "Guyana"
+          ],
+          [
+            "Croatia"
+          ],
+          [
+            "Jamaica"
+          ],
+          [
+            "Kazakstan"
+          ],
+          [
+            "Kenya"
+          ],
+          [
+            "Kyrgyzstan"
+          ],
+          [
+            "Cambodia"
+          ],
+          [
+            "Kiribati"
+          ],
+          [
+            "Saint Kitts and Nevis"
+          ],
+          [
+            "Kuwait"
+          ],
+          [
+            "Laos"
+          ],
+          [
+            "Libyan Arab Jamahiriya"
+          ],
+          [
+            "Saint Lucia"
+          ],
+          [
+            "Lesotho"
+          ],
+          [
+            "Lithuania"
+          ],
+          [
+            "Latvia"
+          ],
+          [
+            "Morocco"
+          ],
+          [
+            "Moldova"
+          ],
+          [
+            "Madagascar"
+          ],
+          [
+            "Maldives"
+          ],
+          [
+            "Marshall Islands"
+          ],
+          [
+            "Macedonia"
+          ],
+          [
+            "Mali"
+          ],
+          [
+            "Malta"
+          ],
+          [
+            "Mozambique"
+          ],
+          [
+            "Mauritania"
+          ],
+          [
+            "Mauritius"
+          ],
+          [
+            "Malawi"
+          ],
+          [
+            "Malaysia"
+          ],
+          [
+            "Namibia"
+          ],
+          [
+            "Niger"
+          ],
+          [
+            "Nigeria"
+          ],
+          [
+            "Nauru"
+          ],
+          [
+            "Oman"
+          ],
+          [
+            "Palau"
+          ],
+          [
+            "Papua New Guinea"
+          ],
+          [
+            "Qatar"
+          ],
+          [
+            "Russian Federation"
+          ],
+          [
+            "Rwanda"
+          ],
+          [
+            "Sudan"
+          ],
+          [
+            "Senegal"
+          ],
+          [
+            "Singapore"
+          ],
+          [
+            "Solomon Islands"
+          ],
+          [
+            "Sierra Leone"
+          ],
+          [
+            "Somalia"
+          ],
+          [
+            "Sao Tome and Principe"
+          ],
+          [
+            "Suriname"
+          ],
+          [
+            "Slovakia"
+          ],
+          [
+            "Slovenia"
+          ],
+          [
+            "Swaziland"
+          ],
+          [
+            "Seychelles"
+          ],
+          [
+            "Chad"
+          ],
+          [
+            "Togo"
+          ],
+          [
+            "Tajikistan"
+          ],
+          [
+            "Turkmenistan"
+          ],
+          [
+            "Tonga"
+          ],
+          [
+            "Trinidad and Tobago"
+          ],
+          [
+            "Tunisia"
+          ]
+        ],
+        "truncated": true,
+        "evaluation": {
+          "correct": true,
+          "metric": "SQLite EX",
+          "gold_sql": "SELECT Name FROM country WHERE IndepYear  >  1950"
+        }
+      },
+      "elapsed": null
+    },
+    {
+      "time": 1794152121.3398569,
+      "method": "codex_mcp",
+      "kind": "error",
+      "stage": "execute_sql",
+      "input": {
+        "sql": "SELECT Name FROM country WHERE IndepYear > 1950 ORDER BY Name;",
+        "max_rows": 200
+      },
+      "output": "max_rows must be 1..100",
+      "elapsed": 3.258395008742809e-05
+    },
+    {
+      "time": 1794152127.5660968,
+      "method": "codex_mcp",
+      "kind": "result",
+      "stage": "Final SQL",
+      "input": null,
+      "output": "SELECT Name FROM country WHERE IndepYear > 1950 ORDER BY Name;",
+      "elapsed": 15.874669791897759
+    },
+    {
+      "time": 1794152127.664953,
+      "method": "codex_mcp",
+      "kind": "finish",
+      "stage": "SQLite execution",
+      "input": null,
+      "output": {
+        "columns": [
+          "Name"
+        ],
+        "rows": [
+          [
+            "Algeria"
+          ],
+          [
+            "Angola"
+          ],
+          [
+            "Antigua and Barbuda"
+          ],
+          [
+            "Armenia"
+          ],
+          [
+            "Azerbaijan"
+          ],
+          [
+            "Bahamas"
+          ],
+          [
+            "Bahrain"
+          ],
+          [
+            "Bangladesh"
+          ],
+          [
+            "Barbados"
+          ],
+          [
+            "Belarus"
+          ],
+          [
+            "Belize"
+          ],
+          [
+            "Benin"
+          ],
+          [
+            "Bosnia and Herzegovina"
+          ],
+          [
+            "Botswana"
+          ],
+          [
+            "Brunei"
+          ],
+          [
+            "Burkina Faso"
+          ],
+          [
+            "Burundi"
+          ],
+          [
+            "Cambodia"
+          ],
+          [
+            "Cameroon"
+          ],
+          [
+            "Cape Verde"
+          ],
+          [
+            "Central African Republic"
+          ],
+          [
+            "Chad"
+          ],
+          [
+            "Comoros"
+          ],
+          [
+            "Congo"
+          ],
+          [
+            "Congo, The Democratic Republic of the"
+          ],
+          [
+            "Croatia"
+          ],
+          [
+            "Cyprus"
+          ],
+          [
+            "Czech Republic"
+          ],
+          [
+            "Côte d’Ivoire"
+          ],
+          [
+            "Djibouti"
+          ],
+          [
+            "Dominica"
+          ],
+          [
+            "Equatorial Guinea"
+          ],
+          [
+            "Eritrea"
+          ],
+          [
+            "Estonia"
+          ],
+          [
+            "Fiji Islands"
+          ],
+          [
+            "Gabon"
+          ],
+          [
+            "Gambia"
+          ],
+          [
+            "Georgia"
+          ],
+          [
+            "Germany"
+          ],
+          [
+            "Ghana"
+          ],
+          [
+            "Grenada"
+          ],
+          [
+            "Guinea"
+          ],
+          [
+            "Guinea-Bissau"
+          ],
+          [
+            "Guyana"
+          ],
+          [
+            "Jamaica"
+          ],
+          [
+            "Kazakstan"
+          ],
+          [
+            "Kenya"
+          ],
+          [
+            "Kiribati"
+          ],
+          [
+            "Kuwait"
+          ],
+          [
+            "Kyrgyzstan"
+          ],
+          [
+            "Laos"
+          ],
+          [
+            "Latvia"
+          ],
+          [
+            "Lesotho"
+          ],
+          [
+            "Libyan Arab Jamahiriya"
+          ],
+          [
+            "Lithuania"
+          ],
+          [
+            "Macedonia"
+          ],
+          [
+            "Madagascar"
+          ],
+          [
+            "Malawi"
+          ],
+          [
+            "Malaysia"
+          ],
+          [
+            "Maldives"
+          ],
+          [
+            "Mali"
+          ],
+          [
+            "Malta"
+          ],
+          [
+            "Marshall Islands"
+          ],
+          [
+            "Mauritania"
+          ],
+          [
+            "Mauritius"
+          ],
+          [
+            "Micronesia, Federated States of"
+          ],
+          [
+            "Moldova"
+          ],
+          [
+            "Morocco"
+          ],
+          [
+            "Mozambique"
+          ],
+          [
+            "Namibia"
+          ],
+          [
+            "Nauru"
+          ],
+          [
+            "Niger"
+          ],
+          [
+            "Nigeria"
+          ],
+          [
+            "Oman"
+          ],
+          [
+            "Palau"
+          ],
+          [
+            "Papua New Guinea"
+          ],
+          [
+            "Qatar"
+          ],
+          [
+            "Russian Federation"
+          ],
+          [
+            "Rwanda"
+          ],
+          [
+            "Saint Kitts and Nevis"
+          ],
+          [
+            "Saint Lucia"
+          ],
+          [
+            "Saint Vincent and the Grenadines"
+          ],
+          [
+            "Samoa"
+          ],
+          [
+            "Sao Tome and Principe"
+          ],
+          [
+            "Senegal"
+          ],
+          [
+            "Seychelles"
+          ],
+          [
+            "Sierra Leone"
+          ],
+          [
+            "Singapore"
+          ],
+          [
+            "Slovakia"
+          ],
+          [
+            "Slovenia"
+          ],
+          [
+            "Solomon Islands"
+          ],
+          [
+            "Somalia"
+          ],
+          [
+            "Sudan"
+          ],
+          [
+            "Suriname"
+          ],
+          [
+            "Swaziland"
+          ],
+          [
+            "Tajikistan"
+          ],
+          [
+            "Tanzania"
+          ],
+          [
+            "Togo"
+          ],
+          [
+            "Tonga"
+          ],
+          [
+            "Trinidad and Tobago"
+          ]
+        ],
+        "truncated": true,
+        "evaluation": {
+          "correct": true,
+          "metric": "SQLite EX",
+          "gold_sql": "SELECT Name FROM country WHERE IndepYear  >  1950"
+        }
+      },
+      "elapsed": null
+    }
+  ]
+}
