@@ -307,7 +307,7 @@
   }
   .method-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 13px;
   }
   .method-card {
@@ -651,7 +651,7 @@
       border-top: 1px solid var(--border);
       padding: 14px 0 0;
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .run-config > .label,
     .run-action {

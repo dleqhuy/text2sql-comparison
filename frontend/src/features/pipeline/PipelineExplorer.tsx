@@ -53,7 +53,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query"
 import { watchRun } from "./stream"
 
-type Method = "din_sql" | "mac_sql" | "codex_mcp"
+type Method = "din_sql" | "mac_sql" | "dail_sql" | "codex_mcp"
 type Step = {
   stage: string
   input?: unknown
@@ -68,7 +68,7 @@ type Result = {
   truncated: boolean
   evaluation?: { correct: boolean; metric: string; gold_sql: string }
 }
-const methods: Method[] = ["din_sql", "mac_sql", "codex_mcp"]
+const methods: Method[] = ["din_sql", "mac_sql", "dail_sql", "codex_mcp"]
 const info: Record<
   Method,
   { name: string; desc: string; stages: string[]; icon: typeof Layers3 }
@@ -89,6 +89,18 @@ const info: Record<
     desc: "Collaborative SQL agents",
     stages: ["Selector", "Decomposer", "Refiner"],
     icon: Workflow,
+  },
+  dail_sql: {
+    name: "DAIL-SQL",
+    desc: "Retrieve examples · two-pass SQL",
+    stages: [
+      "Preprocessing",
+      "Example selection · pass 1",
+      "SQL generation · pass 1",
+      "Example selection · pass 2",
+      "SQL generation · pass 2",
+    ],
+    icon: GitBranch,
   },
   codex_mcp: {
     name: "Codex MCP SQL",
@@ -185,7 +197,7 @@ export default function PipelineExplorer() {
       })
       .then((b) => {
         setBoot(b)
-        setChosen((old) => old.filter((m) => b.readiness[m].ready))
+        setChosen((old) => old.filter((m) => b.readiness[m]?.ready))
       })
       .catch((e) => setError(`Không kết nối được backend: ${e.message}`))
     refreshHistory().catch((e) => setError(e.message))
@@ -290,7 +302,7 @@ export default function PipelineExplorer() {
       setSnapshot(data)
       setDb(run.db_id)
       setQuestion(run.question)
-      setChosen(run.methods.filter((m) => boot?.readiness[m].ready))
+      setChosen(run.methods.filter((m) => boot?.readiness[m]?.ready))
       setSelectedMethod(run.methods[0])
       setSelectedStep(null)
       setReplay(null)
@@ -616,13 +628,13 @@ export default function PipelineExplorer() {
             {methods.map((m) => (
               <label
                 key={m}
-                className={`method-toggle ${boot && !boot.readiness[m].ready ? "disabled" : ""}`}
-                title={boot?.readiness[m].reason}
+                className={`method-toggle ${boot && !boot.readiness[m]?.ready ? "disabled" : ""}`}
+                title={boot?.readiness[m]?.reason}
               >
                 <input
                   type="checkbox"
                   checked={chosen.includes(m)}
-                  disabled={running || !boot?.readiness[m].ready}
+                  disabled={running || !boot?.readiness[m]?.ready}
                   onChange={(e) =>
                     setChosen((old) =>
                       e.target.checked
@@ -891,8 +903,8 @@ export default function PipelineExplorer() {
                           lineHeight: 1.7,
                         }}
                       >
-                        {!boot?.readiness[m].ready
-                          ? boot?.readiness[m].reason
+                        {!boot?.readiness[m]?.ready
+                          ? boot?.readiness[m]?.reason
                           : selected
                             ? "Sẵn sàng nhận câu hỏi."
                             : "Không được chọn trong phiên này."}
@@ -916,7 +928,9 @@ export default function PipelineExplorer() {
                           ? "FAILED"
                           : result
                             ? "SQL READY"
-                            : "AWAITING"}
+                            : running && entries.length
+                              ? "RUNNING"
+                              : "AWAITING"}
                   </span>
                 </div>
               </article>
@@ -1171,7 +1185,7 @@ export default function PipelineExplorer() {
                 </div>
                 Chạy pipeline rồi chọn một bước để xem input và output thật.
                 <br />
-                Bạn có thể chuyển giữa 3 phương pháp để đối chiếu cách xử lý.
+                Bạn có thể chuyển giữa 4 phương pháp để đối chiếu cách xử lý.
               </div>
             )}
           </div>

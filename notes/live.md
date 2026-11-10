@@ -73,7 +73,7 @@ thay bằng FastAPI. Không có hai backend chạy song song.
 ## Cách dùng
 
 1. Chọn database và câu hỏi Spider hoặc sửa câu hỏi để chạy input riêng.
-2. Chọn DIN-SQL, MAC-SQL, Codex MCP SQL rồi bấm **Chạy pipeline**. Các phương
+2. Chọn DIN-SQL, MAC-SQL, DAIL-SQL, Codex MCP SQL rồi bấm **Chạy pipeline**. Các phương
    pháp chạy lần lượt trên cùng input.
 3. Chọn bước trong timeline để xem **Input / prompt** và **Output / response**.
 4. **Schema** hiển thị DDL thật; **Result** hiển thị SQL cuối và tối đa 100 dòng.
@@ -103,6 +103,22 @@ DIN-SQL ghi schema linking → classification → SQL generation → self-correc
 MAC-SQL ghi trạng thái trước/sau Selector, Decomposer, Refiner và lời gọi model
 của từng agent, kể cả các vòng sửa. Agent có thể bỏ qua LLM khi schema đơn giản
 hoặc SQL đã hợp lệ; không tạo bước giả để lấp chỗ trống.
+DAIL-SQL dùng lại luồng hai lượt của comparison: preprocessing → chọn ví dụ lượt 1
+→ sinh SQL sơ bộ → chọn lại ví dụ lượt 2 → sinh SQL cuối. Inspector hiển thị
+prompt, các cặp câu hỏi/SQL train thực sự được chọn và phản hồi model ở mỗi lượt.
+Mỗi lượt chọn tối đa 9 ví dụ theo cấu hình runner. Input live chỉ chứa câu hỏi,
+`db_id`, token câu hỏi và SQL placeholder `SELECT 1` phục vụ API dữ liệu gốc;
+gold của câu Spider không được đưa vào DAIL. Câu hỏi tùy chỉnh cũng dùng luồng này.
+
+Lần đầu DAIL cần xử lý 8.659 mẫu train. Train schema linking được cache trong
+`.cache/dail-live/`; dữ liệu train/schema, mã preprocessing/linking hoặc dấu thời
+gian/kích thước database thay đổi sẽ đổi khóa cache. Câu hỏi mới vẫn được linking
+lại. DAIL có giới hạn 30 phút/phiên để bao gồm bước chuẩn bị; các phương pháp khác
+vẫn có giới hạn runner 10 phút. Lời gọi provider của DAIL retry tối đa 3 lần,
+không dùng vòng retry vô hạn của CLI gốc. Huỷ phiên dừng cả process group.
+Bootstrap báo thiếu Java/CoreNLP hoặc dữ liệu train trước khi cho chọn DAIL.
+Embedding `all-mpnet-base-v2` cần có cache hoặc kết nối mạng để tải ở lần đầu.
+
 Codex ghi request, public final response/usage và các SQLite MCP tool audit.
 Tool audit xuất hiện sau khi tool hoàn thành, khi Codex turn vẫn đang chạy.
 Không stream token hoặc đưa reasoning items nội bộ lên UI.

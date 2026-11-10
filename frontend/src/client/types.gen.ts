@@ -127,7 +127,7 @@ export type RunCreate = {
     /**
      * Methods
      */
-    methods: Array<'din_sql' | 'mac_sql' | 'codex_mcp'>;
+    methods: Array<'din_sql' | 'mac_sql' | 'dail_sql' | 'codex_mcp'>;
     /**
      * Example Index
      */
@@ -149,7 +149,7 @@ export type RunPublic = {
     /**
      * Methods
      */
-    methods: Array<'din_sql' | 'mac_sql' | 'codex_mcp'>;
+    methods: Array<'din_sql' | 'mac_sql' | 'dail_sql' | 'codex_mcp'>;
     /**
      * Example Index
      */
@@ -218,7 +218,7 @@ export type TraceEvent = {
     /**
      * Method
      */
-    method: 'din_sql' | 'mac_sql' | 'codex_mcp';
+    method: 'din_sql' | 'mac_sql' | 'dail_sql' | 'codex_mcp';
     /**
      * Kind
      */
