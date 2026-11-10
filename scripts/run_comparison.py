@@ -242,9 +242,16 @@ class Comparison:
         repo = ROOT.parent / REPOS["dail_sql"]
         work = self.output / "dail_work"
         stage = work / "dataset/spider"
+        java_candidates = sorted(
+            (repo / "third_party/java11").glob("jdk*/Contents/Home")
+        )
         java = self.env.setdefault(
             "JAVA_HOME",
-            str(repo / "third_party/java11/jdk-11.0.32.1+1-jre/Contents/Home"),
+            str(
+                java_candidates[-1]
+                if java_candidates
+                else repo / "third_party/java11/jdk-11.0.32.1+1-jre/Contents/Home"
+            ),
         )
         self.env["PATH"] = (
             str(Path(java) / "bin") + os.pathsep + self.env.get("PATH", "")

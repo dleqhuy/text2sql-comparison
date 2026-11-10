@@ -219,7 +219,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--request", type=Path, required=True)
     parser.add_argument(
-        "--method", choices=["din_sql", "mac_sql", "codex_mcp"], required=True
+        "--method",
+        choices=["din_sql", "mac_sql", "dail_sql", "codex_mcp"],
+        required=True,
     )
     args = parser.parse_args()
     request = json.loads(args.request.read_text())
@@ -233,6 +235,10 @@ def main():
     try:
         if METHOD == "codex_mcp":
             sql = asyncio.run(codex(row, source))
+        elif METHOD == "dail_sql":
+            from live_dail import run
+
+            sql = run(row, source, OUTPUT, emit)
         else:
             sql = (din if METHOD == "din_sql" else mac)(row, source)
         if not sql or not sql.strip():

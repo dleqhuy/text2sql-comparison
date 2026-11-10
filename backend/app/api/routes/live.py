@@ -65,6 +65,13 @@ def bootstrap():
             if method == "codex_mcp"
             else "Set LLM_API_KEY in .env",
         }
+    if readiness["dail_sql"]["ready"]:
+        missing = pipeline.dail_missing_resources(env)
+        if missing:
+            readiness["dail_sql"] = {
+                "ready": False,
+                "reason": "Missing: " + ", ".join(missing),
+            }
     return {
         "examples": [
             {"index": i, "db_id": r["db_id"], "question": r["question"]}

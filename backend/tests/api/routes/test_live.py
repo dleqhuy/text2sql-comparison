@@ -109,9 +109,10 @@ def test_local_origin_guard(client: TestClient):
     )
 
 
-def test_run_persists_in_postgres_and_replays(client, db: Session, monkeypatch):
+@pytest.mark.parametrize("method", ["din_sql", "dail_sql"])
+def test_run_persists_in_postgres_and_replays(client, db: Session, monkeypatch, method):
     monkeypatch.setattr(pipeline, "execute_run", fake_completed)
-    response = client.post(f"{PREFIX}/runs", json=BODY)
+    response = client.post(f"{PREFIX}/runs", json={**BODY, "methods": [method]})
     assert response.status_code == 201
     run_id = response.json()["id"]
     snapshot = wait_finished(client, run_id)
@@ -121,6 +122,7 @@ def test_run_persists_in_postgres_and_replays(client, db: Session, monkeypatch):
         assert stored.payload["question"] == BODY["question"]
         assert "owner_id" not in stored.payload
     assert snapshot["events"][0]["stage"] == "Final SQL"
+    assert snapshot["events"][0]["method"] == method
     stream = client.get(f"{PREFIX}/runs/{run_id}/events")
     assert stream.headers["content-type"].startswith("text/event-stream")
     assert (
@@ -256,3 +258,25 @@ def test_missing_delete_and_empty_restore(client):
     assert (
         client.post(f"{PREFIX}/runs/restore", json={"run_ids": []}).status_code == 422
     )
+
+
+def test_all_four_methods_are_accepted(client, monkeypatch):
+    monkeypatch.setattr(pipeline, "execute_run", fake_completed)
+    methods = ["din_sql", "mac_sql", "dail_sql", "codex_mcp"]
+    response = client.post(f"{PREFIX}/runs", json={**BODY, "methods": methods})
+    assert response.status_code == 201
+    assert wait_finished(client, response.json()["id"])["meta"]["methods"] == methods
+
+
+def test_dail_missing_resources_are_explained(client, monkeypatch):
+    monkeypatch.setattr(
+        pipeline, "dail_missing_resources", lambda env: ["Stanford CoreNLP"]
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "environment",
+        lambda: {"LLM_API_KEY": "test-key", "LLM_MODEL": "test", "CODEX_MODEL": "test"},
+    )
+    readiness = client.get(f"{PREFIX}/bootstrap").json()["readiness"]["dail_sql"]
+    assert readiness["ready"] is False
+    assert "CoreNLP" in readiness["reason"]

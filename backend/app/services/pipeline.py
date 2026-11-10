@@ -17,6 +17,7 @@ RUNS = Path(os.environ.get("SQL_LAB_RUNS_DIR", str(ROOT / "results/live")))
 REPOS = {
     "din_sql": "Few-shot-NL2SQL-with-prompting",
     "mac_sql": "MAC-SQL",
+    "dail_sql": "DAIL-SQL",
     "codex_mcp": "codex-mcp-sql",
 }
 LOCK = threading.RLock()
@@ -37,6 +38,40 @@ def environment():
     env.setdefault("NLTK_DATA", "/private/tmp/text2sql-nltk")
     env["PYTHONUNBUFFERED"] = "1"
     return env
+
+
+def dail_missing_resources(env):
+    """Report required local resources without importing the heavyweight runtime."""
+    repo = ROOT.parent / REPOS["dail_sql"]
+    java_candidates = sorted((repo / "third_party/java11").glob("jdk*/Contents/Home"))
+    java = Path(
+        env.get("JAVA_HOME")
+        or (
+            str(java_candidates[-1])
+            if java_candidates
+            else str(repo / "third_party/java11/missing")
+        )
+    )
+    core = Path(
+        env.get("CORENLP_HOME")
+        or str(repo / "third_party/stanford-corenlp-full-2018-10-05")
+    )
+    missing = []
+    if not (java / "bin/java").is_file():
+        missing.append("Java 11 (JAVA_HOME)")
+    if not list(core.glob("stanford-corenlp-*.jar")) or not list(
+        core.glob("stanford-corenlp-*-models.jar")
+    ):
+        missing.append("Stanford CoreNLP (CORENLP_HOME)")
+    for name in (
+        "train_spider.json",
+        "train_others.json",
+        "train_gold.sql",
+        "tables.json",
+    ):
+        if not (DATA / name).is_file():
+            missing.append(name)
+    return missing
 
 
 def redact(value):
@@ -164,7 +199,7 @@ def execute_run(path, request, cancel):
                 )
                 with LOCK:
                     ACTIVE[path.name]["process"] = process
-                deadline = time.monotonic() + 600
+                deadline = time.monotonic() + (1800 if method == "dail_sql" else 600)
                 timed_out = False
                 while process.poll() is None:
                     if cancel.wait(0.15) or time.monotonic() > deadline:

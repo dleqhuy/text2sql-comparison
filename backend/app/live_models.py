@@ -7,14 +7,14 @@ from pydantic import Field as InputField
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
 
-Method = Literal["din_sql", "mac_sql", "codex_mcp"]
+Method = Literal["din_sql", "mac_sql", "dail_sql", "codex_mcp"]
 
 
 class RunCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     question: str = InputField(min_length=1, max_length=2000)
     db_id: str = InputField(pattern=r"^[A-Za-z0-9_-]+$", max_length=100)
-    methods: list[Method] = InputField(min_length=1, max_length=3)
+    methods: list[Method] = InputField(min_length=1, max_length=4)
     example_index: int | None = InputField(default=None, ge=0, strict=True)
 
 
