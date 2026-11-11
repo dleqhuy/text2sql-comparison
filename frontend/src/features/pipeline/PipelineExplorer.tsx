@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { isAxiosError } from "axios"
 import {
   Activity,
@@ -201,24 +201,32 @@ export default function PipelineExplorer() {
     const timer = setTimeout(() => setReplay(replay + 1), 600)
     return () => clearTimeout(timer)
   }, [playing, replay, snapshot?.events.length])
-  const visibleEvents =
-    replay === null
-      ? (snapshot?.events ?? [])
-      : (snapshot?.events ?? []).slice(0, replay)
-  const steps = buildSteps(
-    visibleEvents.filter((e) => e.method === selectedMethod),
-    Boolean(
-      snapshot &&
-        !running &&
-        (replay === null || replay >= snapshot.events.length),
-    ),
+  const visibleEvents = useMemo(
+    () =>
+      replay === null
+        ? (snapshot?.events ?? [])
+        : (snapshot?.events ?? []).slice(0, replay),
+    [snapshot?.events, replay],
+  )
+  const methodEvents = useMemo(
+    () => visibleEvents.filter((e) => e.method === selectedMethod),
+    [visibleEvents, selectedMethod],
+  )
+  const terminal = Boolean(
+    snapshot &&
+      !running &&
+      (replay === null || replay >= snapshot.events.length),
+  )
+  // The elapsed-time clock must not rebuild the graph and remount its labels.
+  const steps = useMemo(
+    () => buildSteps(methodEvents, terminal),
+    [methodEvents, terminal],
   )
   const currentIndex =
     selectedStep === null
       ? steps.length - 1
       : Math.min(selectedStep, steps.length - 1)
   const step = steps[currentIndex]
-  const methodEvents = visibleEvents.filter((e) => e.method === selectedMethod)
   const sql = methodEvents.find((e) => e.kind === "result")?.output
   const execution = methodEvents.find(
     (e) => e.stage === "SQLite execution" && e.kind === "finish",
@@ -455,9 +463,11 @@ export default function PipelineExplorer() {
           <div className="label" style={{ marginBottom: 8 }}>
             Trong workspace
           </div>
-          <div>01 &nbsp; DIN-SQL</div>
-          <div>02 &nbsp; MAC-SQL</div>
-          <div>03 &nbsp; Codex MCP SQL</div>
+          {methods.map((method, index) => (
+            <div key={method}>
+              {String(index + 1).padStart(2, "0")} &nbsp; {info[method].name}
+            </div>
+          ))}
           <div
             style={{
               marginTop: 16,
@@ -494,7 +504,7 @@ export default function PipelineExplorer() {
             </p>
           </div>
           <div className="hero-counter">
-            03 METHODS{" "}
+            {String(methods.length).padStart(2, "0")} METHODS{" "}
             <span style={{ margin: "0 12px", color: "#d0d7c7" }}>/</span> 01
             SHARED INPUT
           </div>

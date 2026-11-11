@@ -35,7 +35,7 @@ def environment():
                 env.setdefault(key.strip(), value.strip().strip("\"'"))
     env.setdefault("LLM_MODEL", "cx/gpt-6-luna")
     env.setdefault("CODEX_MODEL", "gpt-6-luna")
-    env.setdefault("NLTK_DATA", "/private/tmp/text2sql-nltk")
+    env.setdefault("NLTK_DATA", str(ROOT / ".cache/nltk_data"))
     env["PYTHONUNBUFFERED"] = "1"
     return env
 

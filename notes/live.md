@@ -126,6 +126,24 @@ vẫn có giới hạn runner 10 phút. Lời gọi provider của DAIL retry t�
 không dùng vòng retry vô hạn của CLI gốc. Huỷ phiên dừng cả process group.
 Bootstrap báo thiếu Java/CoreNLP hoặc dữ liệu train trước khi cho chọn DAIL.
 Embedding `all-mpnet-base-v2` cần có cache hoặc kết nối mạng để tải ở lần đầu.
+Embedding train được lưu trong `DAIL-SQL/.cache/train-embeddings/` và dùng chung
+giữa hai lượt chọn ví dụ và các phiên chạy. Lần đầu vẫn tính toàn bộ train;
+những lần sau chỉ encode câu hỏi mới. Trong một live worker, hai lượt cũng dùng
+chung model CPU đã nạp. Cache giữ nguyên dtype và giá trị vector,
+không thay đổi masking, khoảng cách, điều kiện lọc hay thứ tự chọn ví dụ.
+Khóa cache gồm toàn bộ câu train sau masking theo đúng thứ tự, trọng số model,
+cấu hình tokenizer/model và phiên bản thư viện. Thay đổi các đầu vào này sẽ tính
+lại; cache hỏng tự được xây lại. Có thể đặt `DAIL_EMBEDDING_CACHE_DIR` để đổi nơi
+lưu hoặc `DAIL_EMBEDDING_CACHE=0` để đối chiếu với encode train trực tiếp.
+SQL skeleton, schema linking và question pattern của train sau bước chuẩn bị
+được cache riêng trong `DAIL-SQL/.cache/prepared-train/`. Hai lượt trong live
+worker dùng chung cache bộ nhớ; phiên sau đọc cache trên đĩa. Mỗi lần sử dụng
+nhận bản dữ liệu riêng và gắn lại đường dẫn SQLite cùng mô tả bảng của phiên
+hiện tại. Câu hỏi đầu vào và SQL sơ bộ ở lượt 2 vẫn xử lý mới như trước.
+Cache train tự đổi khi nội dung/thứ tự train, schema, train linking, mã xử lý
+hoặc phiên bản parser thay đổi; cache hỏng tự xây lại. Đặt
+`DAIL_TRAIN_CACHE_DIR` để đổi thư mục lưu, `DAIL_TRAIN_CACHE=0` để chạy đường xử
+lý train gốc và đối chiếu kết quả.
 
 Codex ghi request, public final response/usage và các SQLite MCP tool audit.
 Tool audit xuất hiện sau khi tool hoàn thành, khi Codex turn vẫn đang chạy.
