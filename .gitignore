@@ -44,6 +44,8 @@ __pycache__/
 /results/bird_rves_full_dev/*
 !/results/bird_rves_full_dev/summary.csv
 !/results/bird_rves_full_dev/by_difficulty.csv
+!/results/bird_rves_full_dev/efficiency_per_example.csv
+!/results/bird_rves_full_dev/efficiency_provenance.json
 
 # Previous local runs and temporary experiment files
 /.local_archive/

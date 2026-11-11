@@ -1,9 +1,10 @@
-"""Apply unmodified BIRD mini-dev R-VES functions to saved Spider predictions."""
+"""Measure BIRD R-VES and original-formula VES on shared SQL timings."""
 
 import argparse
 import hashlib
 import importlib.util
 import json
+import math
 import os
 import platform
 import sqlite3
@@ -18,6 +19,33 @@ from common import ROOT, examples, read_json, sql_line, write_json
 from evaluate import validate_predictions, write_csv
 
 METHODS = ("few_shot", "mac_sql", "dail_sql", "codex_mcp")
+
+
+def compute_original_ves(records):
+    """Use the continuous time ratio, with errors/mismatches/timeouts at zero.
+
+    The ratio is the mean of filtered gold/prediction timing pairs, not the
+    ratio of mean times or the mean of square roots. Timing scope is inherited
+    from the measurement (Mini-Dev execute/fetch/close for this pipeline).
+    """
+    if not records:
+        return 0.0
+    total = 0.0
+    for record in records:
+        if record["status"] != "reward_positive":
+            continue
+        ratio = record["mean_filtered_time_ratio"]
+        if (
+            not record["valid_set_match"]
+            or ratio is None
+            or not math.isfinite(ratio)
+            or ratio <= 0
+        ):
+            raise ValueError(
+                "Successful timing requires a valid result and positive finite ratio"
+            )
+        total += math.sqrt(ratio) * 100
+    return total / len(records)
 
 
 def load_bird(bird_root):
@@ -128,7 +156,9 @@ def main():
     manifest = {
         "dataset": "Spider 1.0 dev",
         "examples": len(rows),
-        "metric": "BIRD mini-dev R-VES",
+        "metric": "BIRD VES and mini-dev R-VES",
+        "timing_scope": "execute/fetch/close; excludes opening connection",
+        "ves_formula": "100 * mean(sqrt(mean_filtered_time_ratio)); failures contribute zero",
         "bird_commit": subprocess.check_output(
             ["git", "-C", str(args.bird_root), "rev-parse", "HEAD"], text=True
         ).strip(),
@@ -225,6 +255,7 @@ def main():
                 "method": method,
                 "difficulty": level,
                 "R_VES": bird.compute_ves(subset),
+                "VES": compute_original_ves(subset),
                 "evaluated_examples": len(subset),
                 "valid_set_matches": sum(d["valid_set_match"] for d in subset),
                 "reward_positive": counts["reward_positive"],

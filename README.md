@@ -81,12 +81,12 @@ text2sql/
 
 ## Kết quả full dev
 
-| Phương pháp | SQLite EX | EM trước chuẩn hóa Spider | EM sau chuẩn hóa Spider | R-VES (điểm) |
-|---|---:|---:|---:|---:|
-| DIN-SQL | 82,01% | 58,80% | 61,22% | 71,87 |
-| MAC-SQL | 81,43% | 48,07% | 54,16% | 71,30 |
-| DAIL-SQL | 82,79% | 63,93% | 66,05% | 73,53 |
-| Codex MCP SQL | 76,69% | 18,67% | 39,07% | 66,46 |
+| Phương pháp | SQLite EX | EM trước chuẩn hóa Spider | EM sau chuẩn hóa Spider | VES (điểm) | R-VES (điểm) |
+|---|---:|---:|---:|---:|---:|
+| DIN-SQL | 82,01% | 58,80% | 61,22% | 78,57 | 71,87 |
+| MAC-SQL | 81,43% | 48,07% | 54,16% | 77,39 | 71,30 |
+| DAIL-SQL | 82,79% | 63,93% | 66,05% | 80,02 | 73,53 |
+| Codex MCP SQL | 76,69% | 18,67% | 39,07% | 72,71 | 66,46 |
 
 Cả bốn có đủ 1.034 prediction không rỗng. Độ khó: 248 easy, 446 medium,
 174 hard, 166 extra. Xem [báo cáo so sánh](results/full_dev/report.md) để đọc
@@ -118,7 +118,7 @@ Chấm lại từ prediction đã lưu bằng [evaluate_em.py](scripts/evaluate_
 Tám file prediction được lưu trong Git để chấm lại, mỗi file có 1.034 dòng JSONL
 gồm `example_id`, `db_id`, `question`, `predicted_sql`:
 
-- Bản dùng cho EX, EM trước chuẩn hóa và R-VES:
+- Bản dùng cho EX, EM trước chuẩn hóa, VES và R-VES:
   [DIN-SQL, MAC-SQL, DAIL-SQL](results/full_dev/predictions/) và
   [Codex MCP SQL](results/codex_full_dev/predictions/codex_mcp.jsonl).
 - Bản dùng cho EM sau chuẩn hóa: [cả bốn phương pháp](results/em_normalized_full_dev/predictions/).
@@ -126,13 +126,25 @@ gồm `example_id`, `db_id`, `question`, `predicted_sql`:
 Dataset/database cần được chuẩn bị riêng theo [hướng dẫn cài đặt](notes/setup.md).
 Raw response, trace và log timing không được đưa vào Git.
 
-## Đánh giá hiệu suất SQL bằng BIRD R-VES
+## Đánh giá hiệu suất SQL bằng VES và R-VES
 
 [evaluate_bird_rves.py](scripts/evaluate_bird_rves.py) gọi trực tiếp các hàm trong
 [evaluation_ves.py của BIRD Mini-Dev](https://github.com/bird-bench/mini_dev/blob/1c49a375e76c471e218564da3f4617513d33e371/evaluation/evaluation_ves.py).
 Đây là **Reward-based Valid Efficiency Score (R-VES)**. Metric kiểm tra hai tập
 tuple kết quả trước khi đo tốc độ: bỏ qua thứ tự và số lần lặp của dòng, giữ thứ
 tự cột. Điều kiện này khác SQLite EX ở bảng trên.
+
+VES dùng [công thức gốc của BIRD](https://arxiv.org/html/2305.03111v3#S5):
+`100 × trung bình(sqrt(r))`, với `r` là trung bình các tỷ lệ thời gian
+`gold/prediction` sau lọc outlier cho từng câu. R-VES dùng
+`100 × trung bình(sqrt(reward(r)))`, chia tỷ lệ thành các mức thưởng.
+Cả hai tính trên toàn bộ 1.034 câu, giữ câu sai/lỗi/timeout ở mức 0.
+
+Hai cột trên dùng **cùng timing đã lưu của lượt R-VES**, không chạy lại query
+hoặc model. Vì vậy, VES ở đây là công thức gốc trên phạm vi đo của Mini-Dev
+(`execute/fetch/đóng kết nối`), khác mã VES cũ chỉ bấm giờ `execute`.
+Đây là so sánh hai công thức trên cùng phép đo, không phải chạy lại giao thức
+timing cũ. Điểm R-VES giữ nguyên.
 
 Chạy từ thư mục `text2sql-comparison/`, dùng prediction đã lưu trước bước chuẩn
 hóa riêng cho EM:
@@ -144,6 +156,7 @@ uv sync --extra bird
 .venv/bin/python -m nltk.downloader -d /tmp/text2sql-nltk punkt_tab
 export NLTK_DATA=/tmp/text2sql-nltk
 .venv/bin/python scripts/evaluate_bird_rves.py
+.venv/bin/python scripts/score_bird_efficiency.py
 ```
 
 Nếu đã clone repo thì bỏ qua lệnh clone. Để tái lập revision trên một clone
@@ -153,16 +166,28 @@ Mặc định chạy đủ bốn phương pháp, một worker, một lượt to�
 tối đa 300 giây/câu, theo cách nhân timeout với số lần đo của upstream.
 Không gọi lại model; không đo thời gian sinh SQL hoặc thời gian gọi MCP.
 
-Kết quả nằm ở `results/bird_rves_full_dev/`; [summary.csv](results/bird_rves_full_dev/summary.csv)
-và [by_difficulty.csv](results/bird_rves_full_dev/by_difficulty.csv) được lưu trong Git.
+Kết quả VES/R-VES nằm ở `results/bird_rves_full_dev/`;
+[summary.csv](results/bird_rves_full_dev/summary.csv),
+[by_difficulty.csv](results/bird_rves_full_dev/by_difficulty.csv),
+[tỷ lệ/reward từng câu](results/bird_rves_full_dev/efficiency_per_example.csv)
+và [nguồn phép đo/checksum](results/bird_rves_full_dev/efficiency_provenance.json)
+được lưu trong Git.
 Log từng câu và metadata được giữ cục bộ: `*.details.jsonl`, `*.details.json`,
 `*.bird_input.json`, `gold.txt` và `manifest.json`. Manifest lưu revision/hash
 evaluator, hash prediction, phiên bản runtime, số lần đo và thứ tự phương pháp.
 Độ khó vẫn là easy/medium/hard/extra của Spider, không gán nhãn BIRD.
 
-R-VES phụ thuộc máy, cache và tải hệ thống; điểm tính bằng
-`100 × trung bình(sqrt(reward))`, có thể vượt 100 nên không phải phần trăm câu
-đúng. Xem [báo cáo so sánh](results/full_dev/report.md) để đọc kết quả và cấu hình đo.
+Có thể tái tính cả hai điểm từ dữ liệu từng câu đã commit bằng thư viện chuẩn
+Python, không cần database, log timing thô hay dependency BIRD:
+
+```bash
+python3 scripts/score_bird_efficiency.py --from-csv
+```
+
+VES/R-VES phụ thuộc máy, cache và tải hệ thống; đều có thể vượt 100 và không
+phải phần trăm câu đúng. VES không chặn tỷ lệ tốc độ lớn, nên nhạy hơn với các
+câu có tỷ lệ cực lớn. Xem [báo cáo so sánh](results/full_dev/report.md) để đọc
+kết quả và cấu hình đo.
 
 ## Kiểm thử
 

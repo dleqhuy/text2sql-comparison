@@ -9,7 +9,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from evaluate_bird_rves import load_bird, measure
+from evaluate_bird_rves import compute_original_ves, load_bird, measure
+from score_bird_efficiency import recompute_timing
 
 ROOT = Path(__file__).resolve().parents[2]
 AVAILABLE = (ROOT / "BIRD-mini-dev/evaluation/evaluation_ves.py").is_file() and all(
@@ -103,6 +104,98 @@ class BirdRvesTest(unittest.TestCase):
 
     def test_upstream_constant_samples_filter_to_empty(self):
         self.assertEqual(self.bird.clean_abnormal([1, 1, 1, 1]), [])
+
+    def test_ves_takes_square_root_after_averaging_filtered_ratios(self):
+        result = {
+            "status": "reward_positive",
+            "valid_set_match": True,
+            "reward": 1,
+            "predicted_times_seconds": [1, 1, 1, 1],
+            "gold_times_seconds": [0.5, 1.5, 0.5, 1.5],
+            "mean_filtered_time_ratio": 1,
+            "measured_pairs": 4,
+            "filtered_pairs": 4,
+        }
+        recompute_timing(self.bird, result, 4)
+        self.assertEqual(compute_original_ves([result]), 100)
+        result["mean_filtered_time_ratio"] = 2
+        with self.assertRaisesRegex(ValueError, "Saved mean ratio"):
+            recompute_timing(self.bird, result, 4)
+
+    @unittest.skipUnless(
+        (ROOT / "MAC-SQL/evaluation/evaluation_bird_ves.py").is_file(),
+        "Legacy VES source unavailable",
+    )
+    def test_ves_matches_legacy_aggregator(self):
+        spec = importlib.util.spec_from_file_location(
+            "legacy_ves", ROOT / "MAC-SQL/evaluation/evaluation_bird_ves.py"
+        )
+        legacy = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(legacy)
+        ratios = [0.1, 0.3, 0.75, 1.5, 3, 100, 0]
+        records = [
+            {
+                "status": "reward_positive" if r else "result_mismatch",
+                "valid_set_match": bool(r),
+                "mean_filtered_time_ratio": r,
+            }
+            for r in ratios
+        ]
+        self.assertEqual(
+            compute_original_ves(records),
+            legacy.compute_ves([{"time_ratio": r} for r in ratios]),
+        )
+
+
+class OriginalVesTest(unittest.TestCase):
+    def test_failures_stay_in_denominator_and_have_zero_contribution(self):
+        records = [
+            {
+                "status": "reward_positive",
+                "valid_set_match": True,
+                "mean_filtered_time_ratio": 4,
+            }
+        ]
+        records += [
+            {"status": status, "valid_set_match": True, "mean_filtered_time_ratio": 100}
+            for status in (
+                "result_mismatch",
+                "query_error",
+                "timeout",
+                "empty_outlier_filter",
+            )
+        ]
+        self.assertEqual(compute_original_ves(records), 40)
+
+    def test_continuous_ves_has_no_reward_cap(self):
+        self.assertEqual(
+            compute_original_ves(
+                [
+                    {
+                        "status": "reward_positive",
+                        "valid_set_match": True,
+                        "mean_filtered_time_ratio": 100,
+                    }
+                ]
+            ),
+            1000,
+        )
+
+    def test_invalid_successful_ratio_is_rejected(self):
+        for value in (None, 0, -1, float("nan"), float("inf")):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                compute_original_ves(
+                    [
+                        {
+                            "status": "reward_positive",
+                            "valid_set_match": True,
+                            "mean_filtered_time_ratio": value,
+                        }
+                    ]
+                )
+
+    def test_empty_dataset(self):
+        self.assertEqual(compute_original_ves([]), 0)
 
 
 if __name__ == "__main__":

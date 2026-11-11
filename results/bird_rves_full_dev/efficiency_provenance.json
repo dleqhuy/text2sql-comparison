@@ -1,0 +1,30 @@
+{
+  "dataset": "Spider 1.0 dev",
+  "examples_per_method": 1034,
+  "timing_reused": true,
+  "timing_scope": "Mini-Dev execute/fetch/close, excluding connection opening",
+  "iterations": 100,
+  "workers": 1,
+  "full_passes": 1,
+  "meta_timeout": 3.0,
+  "bird_commit": "1c49a375e76c471e218564da3f4617513d33e371",
+  "evaluator_sha256": "c23d606c002fd9eb75c17ce3cbabdc26d0a791b8291615a75cbf5e9c98ae67df",
+  "python": "3.9.25 (main, Oct 31 2025, 23:00:23) \n[Clang 21.1.4 ]",
+  "sqlite": "3.50.4",
+  "platform": "Linux-7.0.0-42-generic-x86_64-with-glibc2.43",
+  "prediction_sha256": {
+    "few_shot": "8fc0cc449e8bbc6a39afe0a8f51586b93c421a3eecdedbfb1fc8dbfd1ddc3b68",
+    "mac_sql": "cafc251393aeacb1e2c6a6506adf6976c997b04326c0c4fa4dc486a6ad78953a",
+    "dail_sql": "540d41e153562ff9f7f366384799a0ac321611a981564a8f01ac91e01cae649a",
+    "codex_mcp": "ac07ee49ad897776ae100da7450fd624153e4214aa34a959c53ec8dfca2bd568"
+  },
+  "raw_details_sha256": {
+    "few_shot": "064a9cd979d6f40b5e2fb05254d1e158e529585e7f9fb4fb834dc490a651b5d0",
+    "mac_sql": "06d98f5f5db38dd5775a3101ff7ce1bbd26f57d07e24ffa850cf5842f6fa8f4f",
+    "dail_sql": "411c465ee6090142f3adb628f7a64805054f13b09f2a9c2c4c9192076e7e0d0d",
+    "codex_mcp": "7a24d63aa83a50019628463fdd526b191b328ac57647a117fd72071b31bac531"
+  },
+  "ves_formula": "100 * sum(sqrt(mean_filtered_time_ratio) for successful queries) / all_queries",
+  "r_ves_formula": "100 * sum(sqrt(reward)) / all_queries",
+  "evidence_sha256": "42a735c113503d0aa4b39c814364b1da8f989c831e9c88feed32ba01a6e5af66"
+}

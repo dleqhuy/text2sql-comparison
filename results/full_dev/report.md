@@ -120,7 +120,7 @@ prediction trước chuẩn hóa. Bảng trên lưu kết quả tổng hợp tro
 Prediction gốc và kết quả
 EM trước chuẩn hóa không bị ghi đè khi chạy bước chuẩn hóa.
 
-## Hiệu suất SQL theo BIRD Mini-Dev R-VES
+## Hiệu suất SQL theo VES và BIRD Mini-Dev R-VES
 
 Bổ sung metric từ
 [evaluation_ves.py](https://github.com/bird-bench/mini_dev/blob/1c49a375e76c471e218564da3f4617513d33e371/evaluation/evaluation_ves.py)
@@ -129,14 +129,16 @@ clone vào `../BIRD-mini-dev/`. Đây là R-VES áp dụng trên **Spider 1.0 de
 không phải đánh giá trên dataset BIRD Mini-Dev. Input là cùng prediction đã lưu
 trước bước chuẩn hóa riêng cho EM; không gọi lại model.
 
-| Phương pháp | R-VES (điểm) | Khớp tập kết quả / 1.034 | Lỗi thực thi/đọc dữ liệu | Timeout |
-|---|---:|---:|---:|---:|
-| DIN-SQL | 71,87 | 811 | 3 | 0 |
-| MAC-SQL | 71,30 | 804 | 3 | 0 |
-| DAIL-SQL | 73,53 | 826 | 4 | 0 |
-| Codex MCP SQL | 66,46 | 760 | 2 | 0 |
+| Phương pháp | VES (điểm) | R-VES (điểm) | Khớp tập kết quả / 1.034 | Lỗi thực thi/đọc dữ liệu | Timeout |
+|---|---:|---:|---:|---:|---:|
+| DIN-SQL | 78,57 | 71,87 | 811 | 3 | 0 |
+| MAC-SQL | 77,39 | 71,30 | 804 | 3 | 0 |
+| DAIL-SQL | 80,02 | 73,53 | 826 | 4 | 0 |
+| Codex MCP SQL | 72,71 | 66,46 | 760 | 2 | 0 |
 
-DAIL-SQL có R-VES cao nhất trong lượt đo này. Mỗi câu nhận reward dương đều
+DAIL-SQL có VES và R-VES cao nhất trong lượt đo này. VES được tính thêm từ
+cùng 100 cặp timing mỗi câu của lượt R-VES đã lưu; không chạy lại query/model,
+không thay đổi các điểm R-VES. Mỗi câu nhận reward dương đều
 có đủ 100 cặp đo, không có timeout hay trường hợp bộ lọc outlier trả rỗng.
 Các lỗi chủ yếu là dữ liệu trong `wta_1` không giải mã được bằng UTF-8 mặc
 định của upstream; DAIL-SQL còn có một câu tham chiếu cột `Airline` không rõ bảng.
@@ -145,7 +147,9 @@ chính sách giải mã bỏ qua byte UTF-8 lỗi, nên không suy diễn các l
 lỗi inference hoặc chuẩn hóa SQL đối với các trường hợp giải mã UTF-8.
 
 Số liệu đầy đủ được lưu trong Git: [summary.csv](../bird_rves_full_dev/summary.csv)
-và [by_difficulty.csv](../bird_rves_full_dev/by_difficulty.csv).
+và [by_difficulty.csv](../bird_rves_full_dev/by_difficulty.csv), cùng
+[tỷ lệ/reward từng câu](../bird_rves_full_dev/efficiency_per_example.csv) và
+[provenance/checksum](../bird_rves_full_dev/efficiency_provenance.json).
 
 ### Công thức và điều kiện đúng
 
@@ -156,7 +160,17 @@ cho phép hoán vị cột nhất quán và xét ORDER BY ngoài cùng.
 
 Với câu khớp kết quả, mỗi cặp đo lấy tỷ lệ `r = thời gian gold / thời gian prediction`.
 Bỏ các tỷ lệ nằm ngoài khoảng mở `mean ± 3 × std`, rồi lấy trung bình các tỷ lệ
-còn lại để chọn reward:
+còn lại thành `r_i` cho từng câu.
+
+**VES theo công thức gốc:** `100 × tổng(sqrt(r_i)) / số câu`, với `r_i=0`
+cho câu sai/lỗi/timeout hoặc phép đo thất bại. Lấy căn sau khi tính trung bình
+các tỷ lệ của từng câu; không lấy trung bình các căn, cũng không lấy tỷ lệ của
+hai thời gian trung bình. Công thức tham chiếu từ
+[bài báo BIRD](https://arxiv.org/html/2305.03111v3#S5); kết quả được đối chiếu với
+hàm `compute_ves` trong mã VES cũ ở `MAC-SQL/evaluation/evaluation_bird_ves.py`.
+VES giữ tỷ lệ liên tục và không có trần cố định cho các trường hợp chạy nhanh.
+
+**R-VES:** dùng `r_i` để chọn reward:
 
 | Tỷ lệ thời gian trung bình | Reward |
 |---|---:|
@@ -183,15 +197,31 @@ bộ dữ liệu; chạy các phương pháp theo thứ tự DIN-SQL, MAC-SQL, D
 
 Runtime của lượt đo: Linux x86_64, Python 3.9.25, SQLite 3.50.4, NumPy 2.0.2,
 func-timeout 4.3.5. Thời gian upstream bao gồm execute/fetch/đóng kết nối, không
-bao gồm mở kết nối; không tính thời gian sinh SQL hoặc gọi MCP. Có hiệu ứng cache
+bao gồm mở kết nối; không tính thời gian sinh SQL hoặc gọi MCP. VES trong bảng
+dùng công thức gốc trên chính timing Mini-Dev này. Mã VES cũ chỉ bấm giờ
+`cursor.execute`, vì vậy đây không phải lượt đo lại theo giao thức timing cũ;
+không so trực tiếp với điểm VES từ giao thức đó. Có hiệu ứng cache
 và tải máy, nên kết quả là một lượt đo cục bộ, không phải cấu hình lặp 5 lượt rồi
 lấy điểm cao nhất được mô tả trong README upstream.
 
-Lệnh chạy và cài dependency ở [README](../../README.md#đánh-giá-hiệu-suất-sql-bằng-bird-r-ves).
+Lệnh chạy và cài dependency ở [README](../../README.md#đánh-giá-hiệu-suất-sql-bằng-ves-và-r-ves).
 Artifact cục bộ nằm trong `results/bird_rves_full_dev/`: CSV tổng hợp và theo độ
 khó Spider, input BIRD, gold, log từng câu có timing/reward/lỗi và manifest ghi
 revision/hash evaluator, hash prediction cùng cấu hình runtime. Không thay nhãn
 độ khó Spider thành simple/moderate/challenging của BIRD.
+
+[score_bird_efficiency.py](../../scripts/score_bird_efficiency.py) kiểm tra lại
+tất cả timing thô, số cặp, bộ lọc outlier, tỷ lệ trung bình và reward trước khi
+ghi thêm VES vào hai CSV tổng hợp. Cả 4.136 câu được giữ trong mẫu số; điểm
+R-VES phải khớp số liệu cũ thì mới ghi kết quả. Tỷ lệ/reward từng câu và checksum
+được commit để tái tính trên máy khác mà không cần đo lại:
+
+```bash
+python3 scripts/score_bird_efficiency.py --from-csv
+```
+
+Lệnh này chỉ tổng hợp lại các phép đo đã lưu. Để có một lượt timing mới trên
+máy khác, chạy `evaluate_bird_rves.py` rồi `score_bird_efficiency.py` theo README.
 
 ## Cách chấm và kiểm tra
 

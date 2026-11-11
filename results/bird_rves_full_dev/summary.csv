@@ -1,5 +1,5 @@
-method,R_VES,evaluated_examples,valid_set_matches,reward_positive,query_errors,timeouts,empty_filters
-few_shot,71.87321729520238,1034,811,811,3,0,0
-mac_sql,71.29640714955998,1034,804,804,3,0,0
-dail_sql,73.53042804951448,1034,826,826,4,0,0
-codex_mcp,66.45538992210957,1034,760,760,2,0,0
+method,R_VES,VES,evaluated_examples,valid_set_matches,reward_positive,query_errors,timeouts,empty_filters
+few_shot,71.87321729520238,78.56612509710749,1034,811,811,3,0,0
+mac_sql,71.29640714955998,77.38853134765193,1034,804,804,3,0,0
+dail_sql,73.53042804951448,80.01821707274657,1034,826,826,4,0,0
+codex_mcp,66.45538992210957,72.71203155457293,1034,760,760,2,0,0
