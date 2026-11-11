@@ -5,6 +5,14 @@ description = "Spider dev comparison of DIN-SQL, MAC-SQL, DAIL-SQL and Codex MCP
 requires-python = ">=3.9"
 dependencies = ["nltk>=3.8,<4", "sqlglot==27.29.0"]
 
+[project.optional-dependencies]
+bird = [
+    "numpy==2.0.2",
+    "func-timeout==4.3.5",
+    "psycopg2-binary>=2.9,<3",
+    "PyMySQL>=1.1,<2",
+]
+
 [dependency-groups]
 dev = ["ruff==0.17.1"]
 

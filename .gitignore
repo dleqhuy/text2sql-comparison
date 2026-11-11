@@ -15,13 +15,35 @@ __pycache__/
 /downloads/
 /data/
 
-# Keep full-dev score reports; inference artifacts stay local
+# Keep score reports and predictions; traces and timing logs stay local
 /results/*
 !/results/full_dev/
 /results/full_dev/*
 !/results/full_dev/summary.csv
 !/results/full_dev/by_difficulty.csv
 !/results/full_dev/report.md
+!/results/full_dev/predictions/
+/results/full_dev/predictions/*
+!/results/full_dev/predictions/few_shot.jsonl
+!/results/full_dev/predictions/mac_sql.jsonl
+!/results/full_dev/predictions/dail_sql.jsonl
+!/results/codex_full_dev/
+/results/codex_full_dev/*
+!/results/codex_full_dev/predictions/
+/results/codex_full_dev/predictions/*
+!/results/codex_full_dev/predictions/codex_mcp.jsonl
+!/results/em_normalized_full_dev/
+/results/em_normalized_full_dev/*
+!/results/em_normalized_full_dev/predictions/
+/results/em_normalized_full_dev/predictions/*
+!/results/em_normalized_full_dev/predictions/few_shot.jsonl
+!/results/em_normalized_full_dev/predictions/mac_sql.jsonl
+!/results/em_normalized_full_dev/predictions/dail_sql.jsonl
+!/results/em_normalized_full_dev/predictions/codex_mcp.jsonl
+!/results/bird_rves_full_dev/
+/results/bird_rves_full_dev/*
+!/results/bird_rves_full_dev/summary.csv
+!/results/bird_rves_full_dev/by_difficulty.csv
 
 # Previous local runs and temporary experiment files
 /.local_archive/

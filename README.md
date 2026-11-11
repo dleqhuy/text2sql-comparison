@@ -15,6 +15,11 @@ Mặc định CLI chạy DIN-SQL, MAC-SQL và DAIL-SQL; chọn cả bốn bằng
 | MAC-SQL | [dleqhuy/MAC-SQL](https://github.com/dleqhuy/MAC-SQL) | [wbbeyourself/MAC-SQL](https://github.com/wbbeyourself/MAC-SQL) |
 | DAIL-SQL | [dleqhuy/DAIL-SQL](https://github.com/dleqhuy/DAIL-SQL) | [BeachWang/DAIL-SQL](https://github.com/BeachWang/DAIL-SQL) |
 
+Bộ đánh giá hiệu suất SQL được clone thêm từ
+[bird-bench/mini_dev](https://github.com/bird-bench/mini_dev) vào thư mục ngang cấp
+`../BIRD-mini-dev/`. Repo này cung cấp R-VES, được áp dụng bổ sung trên các
+prediction **Spider 1.0 dev** hiện có; không phải lượt chạy trên dataset BIRD.
+
 ## Chạy
 
 **Ứng dụng SQL / Lab — frontend/backend từ Full Stack FastAPI Template:**
@@ -70,17 +75,18 @@ text2sql/
 ├── MAC-SQL/
 ├── DAIL-SQL/
 ├── codex-mcp-sql/
+├── BIRD-mini-dev/              # Evaluator R-VES upstream
 └── spider/
 ```
 
 ## Kết quả full dev
 
-| Phương pháp | SQLite EX | EM trước chuẩn hóa Spider | EM sau chuẩn hóa Spider |
-|---|---:|---:|---:|
-| DIN-SQL | 82,01% | 58,80% | 61,22% |
-| MAC-SQL | 81,43% | 48,07% | 54,16% |
-| DAIL-SQL | 82,79% | 63,93% | 66,05% |
-| Codex MCP SQL | 76,69% | 18,67% | 39,07% |
+| Phương pháp | SQLite EX | EM trước chuẩn hóa Spider | EM sau chuẩn hóa Spider | R-VES (điểm) |
+|---|---:|---:|---:|---:|
+| DIN-SQL | 82,01% | 58,80% | 61,22% | 71,87 |
+| MAC-SQL | 81,43% | 48,07% | 54,16% | 71,30 |
+| DAIL-SQL | 82,79% | 63,93% | 66,05% | 73,53 |
+| Codex MCP SQL | 76,69% | 18,67% | 39,07% | 66,46 |
 
 Cả bốn có đủ 1.034 prediction không rỗng. Độ khó: 248 easy, 446 medium,
 174 hard, 166 extra. Xem [báo cáo so sánh](results/full_dev/report.md) để đọc
@@ -108,6 +114,55 @@ mọi dữ liệu. Các lỗi parser còn lại vẫn tính trong mẫu số 1.0
 Chấm lại từ prediction đã lưu bằng [evaluate_em.py](scripts/evaluate_em.py) và
 [normalize_em.py](scripts/normalize_em.py); xem lệnh và giới hạn trong
 [báo cáo so sánh](results/full_dev/report.md#exact-set-match-trước-và-sau-chuẩn-hóa-spider).
+
+Tám file prediction được lưu trong Git để chấm lại, mỗi file có 1.034 dòng JSONL
+gồm `example_id`, `db_id`, `question`, `predicted_sql`:
+
+- Bản dùng cho EX, EM trước chuẩn hóa và R-VES:
+  [DIN-SQL, MAC-SQL, DAIL-SQL](results/full_dev/predictions/) và
+  [Codex MCP SQL](results/codex_full_dev/predictions/codex_mcp.jsonl).
+- Bản dùng cho EM sau chuẩn hóa: [cả bốn phương pháp](results/em_normalized_full_dev/predictions/).
+
+Dataset/database cần được chuẩn bị riêng theo [hướng dẫn cài đặt](notes/setup.md).
+Raw response, trace và log timing không được đưa vào Git.
+
+## Đánh giá hiệu suất SQL bằng BIRD R-VES
+
+[evaluate_bird_rves.py](scripts/evaluate_bird_rves.py) gọi trực tiếp các hàm trong
+[evaluation_ves.py của BIRD Mini-Dev](https://github.com/bird-bench/mini_dev/blob/1c49a375e76c471e218564da3f4617513d33e371/evaluation/evaluation_ves.py).
+Đây là **Reward-based Valid Efficiency Score (R-VES)**. Metric kiểm tra hai tập
+tuple kết quả trước khi đo tốc độ: bỏ qua thứ tự và số lần lặp của dòng, giữ thứ
+tự cột. Điều kiện này khác SQLite EX ở bảng trên.
+
+Chạy từ thư mục `text2sql-comparison/`, dùng prediction đã lưu trước bước chuẩn
+hóa riêng cho EM:
+
+```bash
+git clone --depth 1 https://github.com/bird-bench/mini_dev.git ../BIRD-mini-dev
+git -C ../BIRD-mini-dev checkout 1c49a375e76c471e218564da3f4617513d33e371
+uv sync --extra bird
+.venv/bin/python -m nltk.downloader -d /tmp/text2sql-nltk punkt_tab
+export NLTK_DATA=/tmp/text2sql-nltk
+.venv/bin/python scripts/evaluate_bird_rves.py
+```
+
+Nếu đã clone repo thì bỏ qua lệnh clone. Để tái lập revision trên một clone
+shallow ở thời điểm khác, có thể cần fetch commit trước khi checkout.
+Mặc định chạy đủ bốn phương pháp, một worker, một lượt toàn bộ dữ liệu;
+100 cặp đo prediction/gold cho mỗi câu khớp kết quả. `--meta-timeout 3` cho phép
+tối đa 300 giây/câu, theo cách nhân timeout với số lần đo của upstream.
+Không gọi lại model; không đo thời gian sinh SQL hoặc thời gian gọi MCP.
+
+Kết quả nằm ở `results/bird_rves_full_dev/`; [summary.csv](results/bird_rves_full_dev/summary.csv)
+và [by_difficulty.csv](results/bird_rves_full_dev/by_difficulty.csv) được lưu trong Git.
+Log từng câu và metadata được giữ cục bộ: `*.details.jsonl`, `*.details.json`,
+`*.bird_input.json`, `gold.txt` và `manifest.json`. Manifest lưu revision/hash
+evaluator, hash prediction, phiên bản runtime, số lần đo và thứ tự phương pháp.
+Độ khó vẫn là easy/medium/hard/extra của Spider, không gán nhãn BIRD.
+
+R-VES phụ thuộc máy, cache và tải hệ thống; điểm tính bằng
+`100 × trung bình(sqrt(reward))`, có thể vượt 100 nên không phải phần trăm câu
+đúng. Xem [báo cáo so sánh](results/full_dev/report.md) để đọc kết quả và cấu hình đo.
 
 ## Kiểm thử
 
