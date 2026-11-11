@@ -8,7 +8,8 @@
     "build": "tsc -p tsconfig.build.json && vite build",
     "lint": "biome check --write --unsafe --no-errors-on-unmatched --files-ignore-unknown=true ./",
     "preview": "vite preview",
-    "generate-client": "openapi-ts"
+    "generate-client": "openapi-ts",
+    "test:flow": "node --experimental-strip-types --test tests/pipeline-flow.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^6.0.1",
@@ -30,6 +31,7 @@
     "@tanstack/react-router": "^1.170.46",
     "@tanstack/react-router-devtools": "^1.167.2",
     "@tanstack/react-table": "^9.3.1",
+    "@xyflow/react": "^12.12.1",
     "axios": "1.20.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -8,7 +8,6 @@ import {
   Check,
   CheckCheck,
   ChevronRight,
-  Circle,
   CircleCheck,
   Clock3,
   Code2,
@@ -47,21 +46,14 @@ import {
   type Bootstrap,
   type RunPublic as Run,
   type RunSnapshot as Snapshot,
-  type TraceEvent as Event,
   type SchemaObject,
 } from "@/client"
 import { useQueryClient } from "@tanstack/react-query"
 import { watchRun } from "./stream"
+import PipelineFlow from "./PipelineFlow"
+import StepPayload from "./StepPayload"
+import { buildSteps, stepDetails, type Method } from "./flow-model"
 
-type Method = "din_sql" | "mac_sql" | "dail_sql" | "codex_mcp"
-type Step = {
-  stage: string
-  input?: unknown
-  output?: unknown
-  status: string
-  elapsed?: number
-  time: number
-}
 type Result = {
   columns: string[]
   rows: unknown[][]
@@ -119,39 +111,6 @@ function requestError(error: unknown) {
     return error.response.data.detail
   return error instanceof Error ? error.message : "Không thể cập nhật lịch sử."
 }
-function buildSteps(events: Event[]): Step[] {
-  const steps: Step[] = []
-  for (const e of events) {
-    if (e.kind === "queued") continue
-    if (e.kind === "start") {
-      steps.push({
-        stage: e.stage,
-        input: e.input,
-        status: "running",
-        time: e.time,
-      })
-      continue
-    }
-    const pending = [...steps]
-      .reverse()
-      .find((s) => s.stage === e.stage && s.status === "running")
-    if (pending) {
-      pending.output = e.output
-      pending.elapsed = e.elapsed ?? undefined
-      pending.status = e.kind === "error" ? "error" : "done"
-    } else
-      steps.push({
-        stage: e.stage,
-        input: e.input,
-        output: e.output,
-        status: ["error", "failed"].includes(e.kind) ? "error" : "done",
-        elapsed: e.elapsed ?? undefined,
-        time: e.time,
-      })
-  }
-  return steps
-}
-
 export default function PipelineExplorer() {
   const queryClient = useQueryClient()
   const [boot, setBoot] = useState<Bootstrap | null>(null),
@@ -248,6 +207,11 @@ export default function PipelineExplorer() {
       : (snapshot?.events ?? []).slice(0, replay)
   const steps = buildSteps(
     visibleEvents.filter((e) => e.method === selectedMethod),
+    Boolean(
+      snapshot &&
+        !running &&
+        (replay === null || replay >= snapshot.events.length),
+    ),
   )
   const currentIndex =
     selectedStep === null
@@ -387,7 +351,13 @@ export default function PipelineExplorer() {
         format(
           view === "results"
             ? sql
-            : step?.[tab === "input" ? "input" : "output"],
+            : step
+              ? tab === "input"
+                ? (stepDetails(step, steps).prompt ?? step.input)
+                : (stepDetails(step, steps).sql ??
+                  stepDetails(step, steps).response ??
+                  step.output)
+              : undefined,
         ),
       )
       setCopied(true)
@@ -792,404 +762,328 @@ export default function PipelineExplorer() {
             </Button>
           </div>
         )}
-        <section className="method-grid" aria-label="Các phương pháp">
-          {methods.map((m, mi) => {
-            const entries = visibleEvents.filter((e) => e.method === m),
-              list = buildSteps(entries),
-              hasError = entries.some(
-                (e) =>
-                  e.kind === "failed" ||
-                  (e.stage === "SQLite execution" && e.kind === "error"),
-              ),
-              result = entries.find((e) => e.kind === "result"),
-              query = entries.find(
-                (e) => e.stage === "SQLite execution" && e.kind === "finish",
-              )?.output as Result | undefined
-            const MethodIcon = info[m].icon
-            const selected = snapshot
-              ? snapshot.meta.methods.includes(m)
-              : chosen.includes(m)
+        <div
+          className="flow-method-tabs"
+          role="tablist"
+          aria-label="Chọn sơ đồ phương pháp"
+        >
+          {methods.map((method) => {
+            const entries = visibleEvents.filter((e) => e.method === method)
+            const MethodIcon = info[method].icon
+            const output = entries.find(
+              (e) => e.stage === "SQLite execution" && e.kind === "finish",
+            )?.output as Result | undefined
+            const failed = entries.some(
+              (e) =>
+                e.kind === "failed" ||
+                (e.stage === "SQLite execution" && e.kind === "error"),
+            )
+            const status = output?.evaluation
+              ? output.evaluation.correct
+                ? "EX MATCH"
+                : "EX MISMATCH"
+              : snapshot && !snapshot.meta.methods.includes(method)
+                ? "KHÔNG CHỌN"
+                : failed
+                  ? "FAILED"
+                  : output
+                    ? "EXECUTED"
+                    : entries.length && running
+                      ? "LIVE"
+                      : entries.some((e) => e.kind === "result")
+                        ? "SQL READY"
+                        : "CHỜ"
             return (
-              <article
-                key={m}
-                className={`method-card ${selectedMethod === m ? "selected" : ""}`}
+              <button
+                key={method}
+                type="button"
+                role="tab"
+                id={`method-tab-${method}`}
+                aria-controls="method-flow-panel"
+                aria-selected={selectedMethod === method}
+                className="flow-method-tab"
+                onClick={() => {
+                  setSelectedMethod(method)
+                  setSelectedStep(null)
+                  setView("trace")
+                }}
               >
-                <button
-                  className="method-head"
-                  onClick={() => {
-                    setSelectedMethod(m)
-                    setSelectedStep(null)
-                    setView("trace")
-                  }}
-                >
-                  <span className="method-symbol">
-                    <MethodIcon size={15} />
-                  </span>
-                  <div>
-                    <div className="method-name">{info[m].name}</div>
-                    <div className="method-desc">{info[m].desc}</div>
-                  </div>
-                  <span
-                    className="status-dot"
-                    style={{
-                      color: hasError
-                        ? "#c5735f"
-                        : result
-                          ? "#6b8c4c"
-                          : "#9da592",
-                    }}
-                  >
-                    {hasError ? (
-                      <TriangleAlert size={12} />
-                    ) : result ? (
-                      <CircleCheck size={12} />
-                    ) : running && entries.length ? (
-                      <Loader2 size={12} className="spin" />
-                    ) : (
-                      <Circle size={9} />
-                    )}
-                  </span>
-                </button>
-                <div className="method-steps">
-                  {list.length ? (
-                    list.map((s, i) => (
-                      <button
-                        key={`${s.stage}-${s.time}-${i}`}
-                        className={`step ${s.status === "error" ? "error" : ""} ${selectedMethod === m && currentIndex === i ? "active" : ""}`}
-                        onClick={() => {
-                          setSelectedMethod(m)
-                          setSelectedStep(i)
-                          setTab(s.output === undefined ? "input" : "output")
-                          setView("trace")
-                        }}
-                      >
-                        <span className="step-icon">
-                          {s.status === "running" ? (
-                            running || replay !== null ? (
-                              <Loader2 size={12} className="spin" />
-                            ) : (
-                              <TriangleAlert size={12} />
-                            )
-                          ) : s.status === "error" ? (
-                            <TriangleAlert size={12} />
-                          ) : (
-                            <Check size={12} />
-                          )}
-                        </span>
-                        <span>{s.stage}</span>
-                        <small>
-                          {s.elapsed !== undefined
-                            ? `${s.elapsed.toFixed(1)}s`
-                            : s.status === "running"
-                              ? "…"
-                              : String(i + 1).padStart(2, "0")}
-                        </small>
-                      </button>
-                    ))
-                  ) : (
-                    <>
-                      {info[m].stages.map((s, i) => (
-                        <div className="step waiting" key={s}>
-                          <Circle size={11} />
-                          <span>{s}</span>
-                          <small>0{i + 1}</small>
-                        </div>
-                      ))}
-                      <div
-                        className="tiny"
-                        style={{
-                          padding: "12px 8px",
-                          fontSize: 10,
-                          lineHeight: 1.7,
-                        }}
-                      >
-                        {!boot?.readiness[m]?.ready
-                          ? boot?.readiness[m]?.reason
-                          : selected
-                            ? "Sẵn sàng nhận câu hỏi."
-                            : "Không được chọn trong phiên này."}
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="method-foot">
-                  <span>
-                    0{mi + 1} /{" "}
-                    {m === "codex_mcp" ? boot?.codex_model : boot?.model}
-                  </span>
-                  <span>
-                    {query?.evaluation
-                      ? query.evaluation.correct
-                        ? "EX MATCH"
-                        : "EX MISMATCH"
-                      : query
-                        ? "EXECUTED"
-                        : hasError
-                          ? "FAILED"
-                          : result
-                            ? "SQL READY"
-                            : running && entries.length
-                              ? "RUNNING"
-                              : "AWAITING"}
-                  </span>
-                </div>
-              </article>
+                <MethodIcon size={15} />
+                {info[method].name}
+                <small>{status}</small>
+              </button>
             )
           })}
-        </section>
-        <section className="inspector" aria-label="Chi tiết từng bước">
-          <div className="inspector-head">
-            <div className="inspector-title">
-              <Maximize2 size={13} />
-              {info[selectedMethod].name}
-              <ChevronRight size={12} style={{ color: "#a4ae9b" }} />
-              <span style={{ fontWeight: 450, color: "#85927a" }}>
-                {view === "trace"
-                  ? (step?.stage ?? "Step inspector")
-                  : view === "schema"
-                    ? "Database schema"
-                    : "Final result"}
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: 4 }}>
-              <Button
-                size="sm"
-                variant={view === "trace" ? "secondary" : "ghost"}
-                onClick={() => setView("trace")}
-              >
-                <Code2 size={12} /> Trace
-              </Button>
-              <Button
-                size="sm"
-                variant={view === "schema" ? "secondary" : "ghost"}
-                onClick={() => setView("schema")}
-              >
-                <Database size={12} /> Schema
-              </Button>
-              <Button
-                size="sm"
-                variant={view === "results" ? "secondary" : "ghost"}
-                onClick={() => setView("results")}
-              >
-                <CheckCheck size={12} /> Result
-              </Button>
-            </div>
-          </div>
-          <div className="inspector-body">
-            {view === "schema" ? (
-              <div className="schema-list">
-                {schema.map((t) => (
-                  <div className="schema-table" key={t.name}>
-                    <h3>{t.name}</h3>
-                    <pre>{t.ddl}</pre>
-                  </div>
-                ))}
+        </div>
+        <div
+          className="flow-workspace"
+          role="tabpanel"
+          id="method-flow-panel"
+          aria-labelledby={`method-tab-${selectedMethod}`}
+        >
+          <PipelineFlow
+            title={info[selectedMethod].name}
+            method={selectedMethod}
+            steps={steps}
+            selectedId={step?.id}
+            runId={snapshot?.meta.id}
+            onSelect={(index) => {
+              setSelectedStep(index)
+              setView("trace")
+              setTab(steps[index]?.output === undefined ? "input" : "output")
+              if (window.matchMedia("(max-width: 1299px)").matches) {
+                requestAnimationFrame(() =>
+                  document
+                    .querySelector(".flow-workspace .inspector")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                )
+              }
+            }}
+          />
+          <section className="inspector" aria-label="Chi tiết từng bước">
+            <div className="inspector-head">
+              <div className="inspector-title">
+                <Maximize2 size={13} />
+                {info[selectedMethod].name}
+                <ChevronRight size={12} style={{ color: "#a4ae9b" }} />
+                <span style={{ fontWeight: 450, color: "#85927a" }}>
+                  {view === "trace"
+                    ? (step?.stage ?? "Step inspector")
+                    : view === "schema"
+                      ? "Database schema"
+                      : "Final result"}
+                </span>
               </div>
-            ) : view === "results" ? (
-              sql ? (
-                <>
-                  <div className="inspect-intro">
-                    <Database size={12} />
-                    {snapshot?.meta.db_id} · SQLite read-only · tối đa 100 dòng
-                    hiển thị
-                  </div>
-                  <div className="payload dark">
-                    <pre>{format(sql)}</pre>
-                  </div>
-                  {execution ? (
-                    <>
-                      <div className="result-table-wrap">
-                        <table>
-                          <thead>
-                            <tr>
-                              {execution.columns.map((c, i) => (
-                                <th key={i}>{c}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {execution.rows.map((r, i) => (
-                              <tr key={i}>
-                                {r.map((c, j) => (
-                                  <td key={j}>
-                                    {c === null ? "NULL" : String(c)}
-                                  </td>
+              <div style={{ display: "flex", gap: 4 }}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    document
+                      .querySelector(".pipeline-flow-panel")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                >
+                  <GitBranch size={12} /> Sơ đồ
+                </Button>
+                <Button
+                  size="sm"
+                  variant={view === "trace" ? "secondary" : "ghost"}
+                  onClick={() => setView("trace")}
+                >
+                  <Code2 size={12} /> Trace
+                </Button>
+                <Button
+                  size="sm"
+                  variant={view === "schema" ? "secondary" : "ghost"}
+                  onClick={() => setView("schema")}
+                >
+                  <Database size={12} /> Schema
+                </Button>
+                <Button
+                  size="sm"
+                  variant={view === "results" ? "secondary" : "ghost"}
+                  onClick={() => setView("results")}
+                >
+                  <CheckCheck size={12} /> Result
+                </Button>
+              </div>
+            </div>
+            <div className="inspector-body">
+              {view === "schema" ? (
+                <div className="schema-list">
+                  {schema.map((t) => (
+                    <div className="schema-table" key={t.name}>
+                      <h3>{t.name}</h3>
+                      <pre>{t.ddl}</pre>
+                    </div>
+                  ))}
+                </div>
+              ) : view === "results" ? (
+                sql ? (
+                  <>
+                    <div className="inspect-intro">
+                      <Database size={12} />
+                      {snapshot?.meta.db_id} · SQLite read-only · tối đa 100
+                      dòng hiển thị
+                    </div>
+                    <div className="payload dark">
+                      <pre>{format(sql)}</pre>
+                    </div>
+                    {execution ? (
+                      <>
+                        <div className="result-table-wrap">
+                          <table>
+                            <thead>
+                              <tr>
+                                {execution.columns.map((c, i) => (
+                                  <th key={i}>{c}</th>
                                 ))}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <p className="tiny" style={{ marginTop: 9 }}>
-                        {execution.rows.length} dòng
-                        {execution.truncated ? " · kết quả đã cắt bớt" : ""}
+                            </thead>
+                            <tbody>
+                              {execution.rows.map((r, i) => (
+                                <tr key={i}>
+                                  {r.map((c, j) => (
+                                    <td key={j}>
+                                      {c === null ? "NULL" : String(c)}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="tiny" style={{ marginTop: 9 }}>
+                          {execution.rows.length} dòng
+                          {execution.truncated ? " · kết quả đã cắt bớt" : ""}
+                        </p>
+                        {execution.evaluation ? (
+                          <div
+                            className={`evaluation ${execution.evaluation.correct ? "" : "wrong"}`}
+                          >
+                            <CircleCheck size={14} />
+                            {execution.evaluation.correct
+                              ? "Khớp đáp án"
+                              : "Không khớp đáp án"}{" "}
+                            · SQLite EX trên 1 database
+                          </div>
+                        ) : (
+                          <div className="tiny">
+                            Câu hỏi tùy chỉnh: không chấm đúng/sai.
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="tiny" style={{ marginTop: 12 }}>
+                        {methodEvents.find(
+                          (e) =>
+                            e.stage === "SQLite execution" &&
+                            e.kind === "error",
+                        )
+                          ? `Lỗi thực thi: ${format(methodEvents.find((e) => e.stage === "SQLite execution" && e.kind === "error")?.output)}`
+                          : "Đang chờ thực thi SQLite…"}
                       </p>
-                      {execution.evaluation ? (
-                        <div
-                          className={`evaluation ${execution.evaluation.correct ? "" : "wrong"}`}
-                        >
-                          <CircleCheck size={14} />
-                          {execution.evaluation.correct
-                            ? "Khớp đáp án"
-                            : "Không khớp đáp án"}{" "}
-                          · SQLite EX trên 1 database
-                        </div>
-                      ) : (
-                        <div className="tiny">
-                          Câu hỏi tùy chỉnh: không chấm đúng/sai.
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <p className="tiny" style={{ marginTop: 12 }}>
-                      {methodEvents.find(
-                        (e) =>
-                          e.stage === "SQLite execution" && e.kind === "error",
-                      )
-                        ? `Lỗi thực thi: ${format(methodEvents.find((e) => e.stage === "SQLite execution" && e.kind === "error")?.output)}`
-                        : "Đang chờ thực thi SQLite…"}
-                    </p>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    style={{ marginTop: 8 }}
-                    onClick={copy}
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      style={{ marginTop: 8 }}
+                      onClick={copy}
+                    >
+                      {copied ? <Check size={12} /> : <Copy size={12} />} Copy
+                      SQL
+                    </Button>
+                  </>
+                ) : (
+                  <div className="empty-state">
+                    <Database size={25} />
+                    SQL cuối cùng và dữ liệu trả về sẽ xuất hiện ở đây.
+                  </div>
+                )
+              ) : step ? (
+                <>
+                  <div className="inspect-intro">
+                    <span className="dot" />
+                    {step.status === "running"
+                      ? running
+                        ? "Đang xử lý…"
+                        : "Bước chưa hoàn tất"
+                      : step.status === "error"
+                        ? "Bước có lỗi"
+                        : "Đã nhận output"}{" "}
+                    <span
+                      style={{
+                        marginLeft: "auto",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
+                      <Clock3 size={11} />
+                      {new Date(step.time * 1000).toLocaleTimeString("vi-VN")}
+                      {step.elapsed !== undefined
+                        ? ` · ${step.elapsed.toFixed(2)}s`
+                        : ""}
+                    </span>
+                  </div>
+                  <Tabs
+                    value={tab}
+                    onValueChange={setTab}
+                    className="inspect-tabs"
                   >
-                    {copied ? <Check size={12} /> : <Copy size={12} />} Copy SQL
-                  </Button>
-                </>
-              ) : (
-                <div className="empty-state">
-                  <Database size={25} />
-                  SQL cuối cùng và dữ liệu trả về sẽ xuất hiện ở đây.
-                </div>
-              )
-            ) : step ? (
-              <>
-                <div className="inspect-intro">
-                  <span className="dot" />
-                  {step.status === "running"
-                    ? running
-                      ? "Đang xử lý…"
-                      : "Bước chưa hoàn tất"
-                    : step.status === "error"
-                      ? "Bước có lỗi"
-                      : "Đã nhận output"}{" "}
-                  <span
-                    style={{
-                      marginLeft: "auto",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
-                  >
-                    <Clock3 size={11} />
-                    {new Date(step.time * 1000).toLocaleTimeString("vi-VN")}
-                    {step.elapsed !== undefined
-                      ? ` · ${step.elapsed.toFixed(2)}s`
-                      : ""}
-                  </span>
-                </div>
-                <Tabs
-                  value={tab}
-                  onValueChange={setTab}
-                  className="inspect-tabs"
-                >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <TabsList>
+                        <TabsTrigger value="input">Input / prompt</TabsTrigger>
+                        <TabsTrigger value="output">
+                          Output / SQL / kết quả
+                        </TabsTrigger>
+                      </TabsList>
+                      <Button variant="ghost" size="sm" onClick={copy}>
+                        {copied ? <Check size={12} /> : <Copy size={12} />} Copy
+                      </Button>
+                    </div>
+                    <TabsContent value="input">
+                      <StepPayload step={step} steps={steps} mode="input" />
+                    </TabsContent>
+                    <TabsContent value="output">
+                      <StepPayload step={step} steps={steps} mode="output" />
+                    </TabsContent>
+                  </Tabs>
                   <div
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
+                      marginTop: 12,
                     }}
                   >
-                    <TabsList>
-                      <TabsTrigger value="input">Input / prompt</TabsTrigger>
-                      <TabsTrigger value="output">
-                        Output / response
-                      </TabsTrigger>
-                    </TabsList>
-                    <Button variant="ghost" size="sm" onClick={copy}>
-                      {copied ? <Check size={12} /> : <Copy size={12} />} Copy
-                    </Button>
-                  </div>
-                  <TabsContent value="input">
-                    <div className="payload">
-                      <pre>
-                        {step.input === undefined ? (
-                          <span className="empty">
-                            Bước này không có input riêng được ghi lại.
-                          </span>
-                        ) : (
-                          format(step.input)
-                        )}
-                      </pre>
+                    <span className="tiny">
+                      Phản hồi công khai từ runner gốc · không tạo bước giả lập
+                    </span>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={currentIndex <= 0}
+                        onClick={() => setSelectedStep(currentIndex - 1)}
+                      >
+                        ← Trước
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={currentIndex >= steps.length - 1}
+                        onClick={() => setSelectedStep(currentIndex + 1)}
+                      >
+                        Tiếp →
+                      </Button>
                     </div>
-                  </TabsContent>
-                  <TabsContent value="output">
-                    <div
-                      className={`payload ${step.stage === "Final SQL" ? "dark" : ""}`}
-                    >
-                      <pre>
-                        {step.output === undefined ? (
-                          <span className="empty">
-                            {step.status === "running"
-                              ? "Đang chờ phản hồi từ runner…"
-                              : "Không có output riêng."}
-                          </span>
-                        ) : (
-                          format(step.output)
-                        )}
-                      </pre>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginTop: 12,
-                  }}
-                >
-                  <span className="tiny">
-                    Phản hồi công khai từ runner gốc · không tạo bước giả lập
-                  </span>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={currentIndex <= 0}
-                      onClick={() => setSelectedStep(currentIndex - 1)}
-                    >
-                      ← Trước
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={currentIndex >= steps.length - 1}
-                      onClick={() => setSelectedStep(currentIndex + 1)}
-                    >
-                      Tiếp →
-                    </Button>
                   </div>
+                </>
+              ) : (
+                <div className="empty-state">
+                  <FlaskConical size={27} />
+                  <div
+                    style={{ fontSize: 14, color: "#647557", marginBottom: 5 }}
+                  >
+                    Mỗi bước đều có một câu chuyện.
+                  </div>
+                  Chọn một phiên trong lịch sử hoặc chạy pipeline, rồi bấm một
+                  nút trên sơ đồ.
+                  <br />
+                  Bạn có thể chuyển giữa 4 phương pháp để đối chiếu cách xử lý.
                 </div>
-              </>
-            ) : (
-              <div className="empty-state">
-                <FlaskConical size={27} />
-                <div
-                  style={{ fontSize: 14, color: "#647557", marginBottom: 5 }}
-                >
-                  Mỗi bước đều có một câu chuyện.
-                </div>
-                Chạy pipeline rồi chọn một bước để xem input và output thật.
-                <br />
-                Bạn có thể chuyển giữa 4 phương pháp để đối chiếu cách xử lý.
-              </div>
-            )}
-          </div>
-        </section>
+              )}
+            </div>
+          </section>
+        </div>
         <footer className="footer">
           <span>
             SQL / LAB &nbsp; · &nbsp; SPIDER 1.0 &nbsp; · &nbsp; FASTAPI +

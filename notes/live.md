@@ -75,7 +75,15 @@ thay bằng FastAPI. Không có hai backend chạy song song.
 1. Chọn database và câu hỏi Spider hoặc sửa câu hỏi để chạy input riêng.
 2. Chọn DIN-SQL, MAC-SQL, DAIL-SQL, Codex MCP SQL rồi bấm **Chạy pipeline**. Các phương
    pháp chạy lần lượt trên cùng input.
-3. Chọn bước trong timeline để xem **Input / prompt** và **Output / response**.
+3. Chọn tab phương pháp để xem sơ đồ React Flow chia lane. Bấm từng nút để xem
+   **Input / prompt** và **Output / SQL / kết quả**; trên màn hình rộng inspector ở
+   bên phải, màn hình hẹp tự cuộn đến phần chi tiết và có nút **Sơ đồ** để quay lại.
+   DAIL hiển thị ví dụ train được chọn ở từng lượt; sinh SQL liên kết với prompt
+   của lời gọi LLM tương ứng. Kết quả truy vấn được hiển thị dạng bảng.
+   Nút chưa có trace hiện mờ và không có dữ liệu giả. Các lần retry/Refiner/tool
+   calls có nút riêng; bấm **Tập trung bước**, dùng +/−, minimap hoặc kéo để xem.
+   DIN chỉ tô nhãn nhánh khi response có `Label:` rõ ràng. Hình thoi là nút chọn
+   nhánh có liên kết về bản ghi phân loại, không phải lời gọi LLM bổ sung.
 4. **Schema** hiển thị DDL thật; **Result** hiển thị SQL cuối và tối đa 100 dòng.
 5. **Lịch sử chạy** và **Phát lại** đọc trace đã lưu, không gọi model lại.
 6. **JSON** xuất các sự kiện; nút vuông hủy runner. Đóng tab không
@@ -152,6 +160,7 @@ trong `.env` của host; chưa có hàng đợi/distributed worker.
 
 ```bash
 npm run build
+npm --workspace frontend run test:flow
 npm run generate-client
 npm run test:comparison
 # Khi PostgreSQL local đang chạy trong terminal khác:
