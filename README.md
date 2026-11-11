@@ -2,7 +2,8 @@
 
 So sánh DIN-SQL, MAC-SQL, DAIL-SQL và Codex MCP SQL trên **toàn bộ Spider 1.0 dev**:
 1.034 câu, 20 database, cùng ID và thứ tự. Cả bốn dùng chung luồng chuẩn hóa và
-chấm SQLite EX. Cấu hình model/backend nằm trong [báo cáo so sánh](results/full_dev/report.md).
+chấm SQLite EX; EM được chấm thêm trước và sau chuẩn hóa cú pháp cho parser Spider.
+Cấu hình model/backend nằm trong [báo cáo so sánh](results/full_dev/report.md).
 Mặc định CLI chạy DIN-SQL, MAC-SQL và DAIL-SQL; chọn cả bốn bằng
 `--methods few_shot mac_sql dail_sql codex_mcp`.
 
@@ -74,22 +75,39 @@ text2sql/
 
 ## Kết quả full dev
 
-| Phương pháp | SQLite EX |
-|---|---:|
-| DIN-SQL | 82,01% |
-| MAC-SQL | 81,43% |
-| DAIL-SQL | 82,79% |
-| Codex MCP SQL | 76,69% |
+| Phương pháp | SQLite EX | EM trước chuẩn hóa Spider | EM sau chuẩn hóa Spider |
+|---|---:|---:|---:|
+| DIN-SQL | 82,01% | 58,80% | 61,22% |
+| MAC-SQL | 81,43% | 48,07% | 54,16% |
+| DAIL-SQL | 82,79% | 63,93% | 66,05% |
+| Codex MCP SQL | 76,69% | 18,67% | 39,07% |
 
 Cả bốn có đủ 1.034 prediction không rỗng. Độ khó: 248 easy, 446 medium,
 174 hard, 166 extra. Xem [báo cáo so sánh](results/full_dev/report.md) để đọc
-cấu hình, EX theo độ khó và phạm vi kiểm tra prediction.
+cấu hình, EX theo độ khó, số câu đúng EM và lỗi parser trước/sau chuẩn hóa.
 
 SQLite EX thực thi trực tiếp, giữ DISTINCT, literal và số dòng trùng;
 cho phép hoán vị cột nhất quán, xét thứ tự dòng khi gold có ORDER BY ngoài cùng.
 Đây là EX trên một database cho mỗi câu, không phải test-suite accuracy.
-Mã Spider chỉ được dùng để phân loại độ khó của gold SQL; prediction được thực thi
-trực tiếp bằng SQLite.
+Trong lượt chấm EX, mã Spider phân loại độ khó của gold SQL; prediction được
+thực thi trực tiếp bằng SQLite.
+
+EM là **Exact Set Match** bằng evaluator Spider gốc với `--etype match`, giữ
+`DISABLE_VALUE=True` và `DISABLE_DISTINCT=True`; không phải so khớp chuỗi SQL.
+“Trước chuẩn hóa Spider” là prediction đã lưu sau pipeline inference/chuẩn hóa
+chung, trước bước thích nghi cú pháp bổ sung dành riêng cho EM. Bước này dùng
+SQLGlot để xử lý identifier, alias và cú pháp tương đương, không gọi lại model.
+
+3.728 SQL được thay đổi đều đã đối chiếu kết quả SQLite với bản trước đó:
+giữ vị trí cột, số dòng trùng và thứ tự khi có ORDER BY ngoài cùng. Nhãn cột đầu
+ra có thể được bỏ trong bản dành cho EM; prediction gốc được giữ riêng. Không có
+câu vốn đúng EM bị chuyển thành sai hoặc câu vốn parse được phát sinh lỗi parser.
+Đối chiếu này kiểm tra trên database hiện có, không chứng minh tương đương trên
+mọi dữ liệu. Các lỗi parser còn lại vẫn tính trong mẫu số 1.034 câu mỗi phương pháp.
+
+Chấm lại từ prediction đã lưu bằng [evaluate_em.py](scripts/evaluate_em.py) và
+[normalize_em.py](scripts/normalize_em.py); xem lệnh và giới hạn trong
+[báo cáo so sánh](results/full_dev/report.md#exact-set-match-trước-và-sau-chuẩn-hóa-spider).
 
 ## Kiểm thử
 
