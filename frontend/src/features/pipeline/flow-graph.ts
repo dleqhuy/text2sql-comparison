@@ -179,18 +179,18 @@ export function createFlow(method: Method, steps: Step[], selectedId?: string) {
       animated: !planned && b.data.status === "running",
       style: {
         stroke: planned
-          ? "#c6cfc2"
+          ? "#cfc8c2"
           : b.data.status === "error"
             ? "#c36a54"
-            : "#6a8560",
+            : "#857160",
         strokeWidth: planned ? 1.3 : 2,
         ...(planned ? { strokeDasharray: "5 5" } : {}),
       },
       markerEnd: {
         type: "arrowclosed" as MarkerType,
-        color: planned ? "#c6cfc2" : "#6a8560",
+        color: planned ? "#cfc8c2" : "#857160",
       },
-      labelStyle: { fontSize: 11, fill: "#617354" },
+      labelStyle: { fontSize: 11, fill: "#736254" },
       labelBgStyle: { fill: "#fff" },
       labelBgPadding: [5, 3],
     })

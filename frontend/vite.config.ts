@@ -7,7 +7,14 @@ import { defineConfig } from "vite"
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
+    // The public demo serves Vite through Cloudflare; never cache dev modules.
+    headers: {
+      "Cache-Control": "no-store",
+      "CDN-Cache-Control": "no-store",
+      "Cloudflare-CDN-Cache-Control": "no-store",
+    },
     host: "127.0.0.1",
+    allowedHosts: ["demo-text2sql.huylab.site"],
     port: 5173,
     strictPort: true,
     proxy: { "/api": { target: "http://127.0.0.1:8100", changeOrigin: false } },

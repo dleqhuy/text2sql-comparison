@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { isAxiosError } from "axios"
 import {
   Activity,
@@ -24,14 +24,21 @@ import {
   RotateCcw,
   Square,
   Terminal,
-  TriangleAlert,
-  Workflow,
   Trash2,
+  TriangleAlert,
   Undo2,
+  Workflow,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useMemo, useRef, useState } from "react"
+import {
+  type Bootstrap,
+  LiveService,
+  type RunPublic as Run,
+  type SchemaObject,
+  type RunSnapshot as Snapshot,
+} from "@/client"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -40,25 +47,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-
-import {
-  LiveService,
-  type Bootstrap,
-  type RunPublic as Run,
-  type RunSnapshot as Snapshot,
-  type SchemaObject,
-} from "@/client"
-import { useQueryClient } from "@tanstack/react-query"
-import { watchRun } from "./stream"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { buildSteps, type Method, stepDetails } from "./flow-model"
 import PipelineFlow from "./PipelineFlow"
+import SchemaDiagram from "./SchemaDiagram"
 import StepPayload from "./StepPayload"
-import { buildSteps, stepDetails, type Method } from "./flow-model"
+import SqlMetrics from "./SqlMetrics"
+import { watchRun } from "./stream"
 
 type Result = {
   columns: string[]
   rows: unknown[][]
   truncated: boolean
   evaluation?: { correct: boolean; metric: string; gold_sql: string }
+}
+const difficultyLabels = {
+  easy: "Dễ",
+  medium: "Trung bình",
+  hard: "Khó",
+  extra: "Rất khó",
+}
+type Difficulty = keyof typeof difficultyLabels
+const difficultyLevels = Object.keys(difficultyLabels) as Difficulty[]
+function difficultyLabel(value: Difficulty | null) {
+  return value ? difficultyLabels[value] : "Chưa phân loại"
 }
 const methods: Method[] = ["din_sql", "mac_sql", "dail_sql", "codex_mcp"]
 const info: Record<
@@ -123,7 +135,12 @@ export default function PipelineExplorer() {
   const [selectedMethod, setSelectedMethod] = useState<Method>("din_sql"),
     [selectedStep, setSelectedStep] = useState<number | null>(null),
     [tab, setTab] = useState("output"),
-    [view, setView] = useState("trace")
+    [view, setView] = useState<"trace" | "results">("trace")
+  const [difficulty, setDifficulty] = useState<Difficulty | "all">("all")
+  const [screen, setScreen] = useState("pipeline")
+  const [schemaLoading, setSchemaLoading] = useState(true)
+  const [schemaError, setSchemaError] = useState("")
+  const [schemaRetry, setSchemaRetry] = useState(0)
   const [schema, setSchema] = useState<SchemaObject[]>([]),
     [busy, setBusy] = useState(false),
     [connected, setConnected] = useState(true),
@@ -162,15 +179,29 @@ export default function PipelineExplorer() {
     refreshHistory().catch((e) => setError(e.message))
   }, [])
   useEffect(() => {
+    let active = true
+    setSchema([])
+    setSchemaLoading(true)
+    setSchemaError("")
     queryClient
       .fetchQuery({
         queryKey: ["pipeline-schema", db],
         queryFn: async () =>
           (await LiveService.readSchema({ path: { db_id: db } })).data,
       })
-      .then(setSchema)
-      .catch((e) => setError(e.message))
-  }, [db])
+      .then((data) => {
+        if (active) setSchema(data)
+      })
+      .catch((error) => {
+        if (active) setSchemaError(requestError(error))
+      })
+      .finally(() => {
+        if (active) setSchemaLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [db, schemaRetry, queryClient])
   useEffect(() => {
     if (!running || !snapshot) return
     const controller = new AbortController()
@@ -237,6 +268,11 @@ export default function PipelineExplorer() {
         : (snapshot.meta.finished_at ?? snapshot.meta.started_at)) -
       snapshot.meta.started_at
     : 0
+  const databaseExamples =
+    boot?.examples.filter((example) => example.db_id === db) ?? []
+  const filteredExamples = databaseExamples.filter(
+    (example) => difficulty === "all" || example.difficulty === difficulty,
+  )
   const matchingExample = boot?.examples.find(
     (e) => e.db_id === db && e.question === question,
   )
@@ -272,6 +308,8 @@ export default function PipelineExplorer() {
       const { data } = await LiveService.readRun({ path: { run_id: run.id } })
       if (version !== runViewVersion.current) return
       setSnapshot(data)
+      setScreen("pipeline")
+      setDifficulty("all")
       setDb(run.db_id)
       setQuestion(run.question)
       setChosen(run.methods.filter((m) => boot?.readiness[m]?.ready))
@@ -376,8 +414,12 @@ export default function PipelineExplorer() {
   }
   function changeDb(value: string) {
     setDb(value)
-    const first = boot?.examples.find((e) => e.db_id === value)
-    if (first) setQuestion(first.question)
+    const first = boot?.examples.find(
+      (example) =>
+        example.db_id === value &&
+        (difficulty === "all" || example.difficulty === difficulty),
+    )
+    setQuestion(first?.question ?? "")
   }
   const statusText =
     replay !== null
@@ -405,8 +447,23 @@ export default function PipelineExplorer() {
           </div>
           <div className="rail-tag">TEXT-TO-SQL OBSERVATORY</div>
         </div>
-        <div className="nav-current">
-          <Activity size={15} /> Pipeline explorer
+        <div className="rail-nav">
+          <button
+            type="button"
+            className="rail-nav-item"
+            aria-current={screen === "pipeline" ? "page" : undefined}
+            onClick={() => setScreen("pipeline")}
+          >
+            <Activity size={15} /> Pipeline explorer
+          </button>
+          <button
+            type="button"
+            className="rail-nav-item"
+            aria-current={screen === "schema" ? "page" : undefined}
+            onClick={() => setScreen("schema")}
+          >
+            <Database size={15} /> Lược đồ CSDL
+          </button>
         </div>
         <div>
           <div className="label" style={{ padding: "0 9px" }}>
@@ -484,31 +541,10 @@ export default function PipelineExplorer() {
         <header className="topbar">
           <span>
             Workspace{" "}
-            <span style={{ margin: "0 10px", color: "#b2b9ac" }}>/</span>{" "}
+            <span style={{ margin: "0 10px", color: "#6f655d" }}>/</span>{" "}
             <strong>Text2SQL comparison</strong>
           </span>
-          <span style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <span className="connection">
-              <span className="dot" />
-              {boot?.endpoint ?? "Connecting to local API…"}
-            </span>
-          </span>
         </header>
-        <div className="hero">
-          <div>
-            <div className="label">OBSERVE. INSPECT. UNDERSTAND.</div>
-            <h1>Từ câu hỏi đến SQL.</h1>
-            <p className="subtitle">
-              Theo dõi từng bước xử lý thật. Hiểu mỗi phương pháp đi đến câu trả
-              lời như thế nào.
-            </p>
-          </div>
-          <div className="hero-counter">
-            {String(methods.length).padStart(2, "0")} METHODS{" "}
-            <span style={{ margin: "0 12px", color: "#d0d7c7" }}>/</span> 01
-            SHARED INPUT
-          </div>
-        </div>
         {error && (
           <div role="alert" className="error-banner">
             <TriangleAlert size={15} />
@@ -548,551 +584,652 @@ export default function PipelineExplorer() {
             </button>
           </div>
         )}
-        <section className="input-panel" aria-label="Cấu hình đầu vào">
-          <div>
-            <div className="input-top">
-              <span className="section-heading">
-                <Database size={14} /> Input chung
-              </span>
+        <div
+          className="workspace-tabs"
+          role="tablist"
+          aria-label="Màn hình workspace"
+        >
+          <Button
+            id="workspace-pipeline-tab"
+            role="tab"
+            aria-selected={screen === "pipeline"}
+            aria-controls="workspace-pipeline"
+            variant={screen === "pipeline" ? "secondary" : "ghost"}
+            onClick={() => setScreen("pipeline")}
+          >
+            <Activity size={15} /> Pipeline explorer
+          </Button>
+          <Button
+            id="workspace-schema-tab"
+            role="tab"
+            aria-selected={screen === "schema"}
+            aria-controls="workspace-schema"
+            variant={screen === "schema" ? "secondary" : "ghost"}
+            onClick={() => setScreen("schema")}
+          >
+            <Database size={15} /> Lược đồ CSDL
+          </Button>
+        </div>
+        {screen === "schema" && (
+          <div
+            id="workspace-schema"
+            role="tabpanel"
+            aria-labelledby="workspace-schema-tab"
+          >
+            <label className="schema-selector">
+              Database demo
               <select
-                aria-label="Database"
+                aria-label="Database lược đồ"
                 value={db}
                 disabled={running}
-                onChange={(e) => changeDb(e.target.value)}
+                onChange={(event) => changeDb(event.target.value)}
               >
-                {(boot?.databases ?? [db]).map((d) => (
-                  <option key={d}>{d}</option>
+                {(boot?.databases ?? [db]).map((name) => (
+                  <option key={name}>{name}</option>
                 ))}
               </select>
-            </div>
-            <select
-              className="example-picker"
-              aria-label="Chọn câu hỏi Spider"
-              disabled={running}
-              value={matchingExample?.index ?? "custom"}
-              onChange={(e) => {
-                const found = boot?.examples.find(
-                  (x) => x.index === Number(e.target.value),
-                )
-                if (found) setQuestion(found.question)
-                else if (e.target.value === "custom") setQuestion("")
-              }}
-            >
-              <option value="custom">Câu hỏi tùy chỉnh — không chấm EX</option>
-              {boot?.examples
-                .filter((e) => e.db_id === db)
-                .map((e) => (
-                  <option key={e.index} value={e.index}>
-                    #{String(e.index).padStart(4, "0")} · {e.question}
-                  </option>
-                ))}
-            </select>
-            <textarea
-              aria-label="Câu hỏi đầu vào"
-              value={question}
-              disabled={running}
-              onChange={(e) => setQuestion(e.target.value)}
-              maxLength={2000}
+            </label>
+            <SchemaDiagram
+              schema={schema}
+              database={db}
+              loading={schemaLoading}
+              error={schemaError}
+              onRetry={() => setSchemaRetry((value) => value + 1)}
             />
-            <div className="question-note">
-              <GitBranch size={11} />
-              {matchingExample
-                ? `Spider dev · #${String(matchingExample.index).padStart(4, "0")} · Có đáp án để chấm SQLite EX`
-                : "Custom input · Thực thi SQL, không có đáp án tham chiếu"}
-            </div>
-          </div>
-          <div className="run-config">
-            <div className="label" style={{ marginBottom: 3 }}>
-              Phương pháp
-            </div>
-            {methods.map((m) => (
-              <label
-                key={m}
-                className={`method-toggle ${boot && !boot.readiness[m]?.ready ? "disabled" : ""}`}
-                title={boot?.readiness[m]?.reason}
-              >
-                <input
-                  type="checkbox"
-                  checked={chosen.includes(m)}
-                  disabled={running || !boot?.readiness[m]?.ready}
-                  onChange={(e) =>
-                    setChosen((old) =>
-                      e.target.checked
-                        ? [...old, m]
-                        : old.filter((x) => x !== m),
-                    )
-                  }
-                />
-                {info[m].name}
-                <small>{m === "codex_mcp" ? "SDK + MCP" : "LLM API"}</small>
-              </label>
-            ))}
-            <div className="run-action">
-              <Button
-                disabled={
-                  !boot || busy || running || !chosen.length || !question.trim()
-                }
-                onClick={start}
-              >
-                {busy ? (
-                  <Loader2 size={13} className="spin" />
-                ) : (
-                  <Play size={13} />
-                )}{" "}
-                Chạy pipeline <ArrowRight size={14} />
-              </Button>
-              {running && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={cancel}
-                  title="Dừng phiên chạy"
-                >
-                  <Square size={13} />
-                </Button>
-              )}
-            </div>
-            <div className="tiny" style={{ fontSize: 9 }}>
-              Mỗi phương pháp dùng runner gốc · {boot?.model ?? "…"}
-            </div>
-          </div>
-        </section>
-        <div className="toolbar">
-          <span className="section-heading">
-            <Radio size={14} />
-            {replay !== null ? "Replay timeline" : "Live pipeline"}{" "}
-            <Badge variant="secondary" className={running ? "pulse" : ""}>
-              {statusText}
-            </Badge>
-          </span>
-          <div className="toolbar-actions">
-            <select
-              aria-label="Mở lịch sử chạy"
-              className="history-picker"
-              disabled={busy || historyBusy}
-              value={snapshot?.meta.id ?? ""}
-              onChange={(e) => {
-                const run = history.find((r) => r.id === e.target.value)
-                if (run) openRun(run)
-              }}
-            >
-              <option value="">Lịch sử chạy</option>
-              {history.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.id.slice(0, 6)} · {r.question}
-                </option>
-              ))}
-            </select>
-            <span
-              className="tiny"
-              style={{ fontFamily: "monospace", marginRight: 8 }}
-            >
-              {snapshot
-                ? `${Math.max(0, elapsed).toFixed(1)}s · ${visibleEvents.length} events`
-                : "Đang chờ input"}
-            </span>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={!snapshot || running}
-              onClick={() => {
-                setReplay(0)
-                setPlaying(true)
-                setSelectedStep(null)
-              }}
-            >
-              <RotateCcw size={12} /> Phát lại
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={!snapshot}
-              onClick={exportRun}
-            >
-              <ArrowDownToLine size={12} /> JSON
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Xóa phiên đang xem"
-              title="Xóa phiên đang xem"
-              disabled={!snapshot || running || historyBusy}
-              onClick={() =>
-                snapshot &&
-                setPendingDelete({ type: "one", run: snapshot.meta })
-              }
-            >
-              <Trash2 size={14} />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={
-                historyBusy || !history.some((run) => run.status !== "running")
-              }
-              onClick={() => setPendingDelete({ type: "all" })}
-            >
-              <Trash2 size={12} /> Xóa lịch sử
-            </Button>
-          </div>
-        </div>
-        {replay !== null && (
-          <div className="replay-strip">
-            <button
-              aria-label={playing ? "Tạm dừng phát lại" : "Tiếp tục phát lại"}
-              onClick={() => setPlaying(!playing)}
-              style={{ border: 0, background: "none" }}
-            >
-              {playing ? <Pause size={13} /> : <Play size={13} />}
-            </button>
-            <span>
-              {replay}/{snapshot?.events.length} events
-            </span>
-            <input
-              aria-label="Vị trí phát lại"
-              type="range"
-              min="0"
-              max={snapshot?.events.length ?? 0}
-              value={replay}
-              onChange={(e) => {
-                setReplay(+e.target.value)
-                setPlaying(false)
-                setSelectedStep(null)
-              }}
-            />
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setReplay(null)
-                setPlaying(false)
-              }}
-            >
-              Xem toàn bộ
-            </Button>
           </div>
         )}
         <div
-          className="flow-method-tabs"
-          role="tablist"
-          aria-label="Chọn sơ đồ phương pháp"
+          id="workspace-pipeline"
+          role="tabpanel"
+          aria-labelledby="workspace-pipeline-tab"
+          hidden={screen !== "pipeline"}
         >
-          {methods.map((method) => {
-            const entries = visibleEvents.filter((e) => e.method === method)
-            const MethodIcon = info[method].icon
-            const output = entries.find(
-              (e) => e.stage === "SQLite execution" && e.kind === "finish",
-            )?.output as Result | undefined
-            const failed = entries.some(
-              (e) =>
-                e.kind === "failed" ||
-                (e.stage === "SQLite execution" && e.kind === "error"),
-            )
-            const status = output?.evaluation
-              ? output.evaluation.correct
-                ? "EX MATCH"
-                : "EX MISMATCH"
-              : snapshot && !snapshot.meta.methods.includes(method)
-                ? "KHÔNG CHỌN"
-                : failed
-                  ? "FAILED"
-                  : output
-                    ? "EXECUTED"
-                    : entries.length && running
-                      ? "LIVE"
-                      : entries.some((e) => e.kind === "result")
-                        ? "SQL READY"
-                        : "CHỜ"
-            return (
-              <button
-                key={method}
-                type="button"
-                role="tab"
-                id={`method-tab-${method}`}
-                aria-controls="method-flow-panel"
-                aria-selected={selectedMethod === method}
-                className="flow-method-tab"
-                onClick={() => {
-                  setSelectedMethod(method)
-                  setSelectedStep(null)
-                  setView("trace")
+          <section className="input-panel" aria-label="Cấu hình đầu vào">
+            <div>
+              <div className="input-top">
+                <span className="section-heading">
+                  <Database size={14} /> Database & câu hỏi
+                </span>
+                <select
+                  aria-label="Database"
+                  value={db}
+                  disabled={running}
+                  onChange={(e) => changeDb(e.target.value)}
+                >
+                  {(boot?.databases ?? [db]).map((d) => (
+                    <option key={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="difficulty-filter">
+                <label htmlFor="question-difficulty">Độ khó</label>
+                <select
+                  id="question-difficulty"
+                  value={difficulty}
+                  disabled={running}
+                  title="Phân loại theo cấu trúc SQL đáp án của Spider"
+                  onChange={(event) => {
+                    const level = event.target.value as Difficulty | "all"
+                    setDifficulty(level)
+                    if (
+                      level !== "all" &&
+                      matchingExample?.difficulty !== level
+                    ) {
+                      setQuestion(
+                        databaseExamples.find(
+                          (example) => example.difficulty === level,
+                        )?.question ?? "",
+                      )
+                    }
+                  }}
+                >
+                  <option value="all">
+                    Tất cả ({databaseExamples.length})
+                  </option>
+                  {difficultyLevels.map((level) => (
+                    <option key={level} value={level}>
+                      {difficultyLabels[level]} (
+                      {
+                        databaseExamples.filter(
+                          (example) => example.difficulty === level,
+                        ).length
+                      }
+                      )
+                    </option>
+                  ))}
+                </select>
+                <span className="tiny">Theo SQL đáp án Spider</span>
+              </div>
+              {boot && !filteredExamples.length && (
+                <p className="tiny" role="status">
+                  Database này chưa có câu hỏi mẫu ở mức độ khó đã chọn. Anh có
+                  thể chọn mức khác hoặc nhập câu hỏi riêng.
+                </p>
+              )}
+              <select
+                className="example-picker"
+                aria-label="Chọn câu hỏi Spider"
+                disabled={running}
+                value={matchingExample?.index ?? "custom"}
+                onChange={(e) => {
+                  const found = boot?.examples.find(
+                    (x) => x.index === Number(e.target.value),
+                  )
+                  if (found) setQuestion(found.question)
+                  else if (e.target.value === "custom") setQuestion("")
                 }}
               >
-                <MethodIcon size={15} />
-                {info[method].name}
-                <small>{status}</small>
-              </button>
-            )
-          })}
-        </div>
-        <div
-          className="flow-workspace"
-          role="tabpanel"
-          id="method-flow-panel"
-          aria-labelledby={`method-tab-${selectedMethod}`}
-        >
-          <PipelineFlow
-            title={info[selectedMethod].name}
-            method={selectedMethod}
-            steps={steps}
-            selectedId={step?.id}
-            runId={snapshot?.meta.id}
-            onSelect={(index) => {
-              setSelectedStep(index)
-              setView("trace")
-              setTab(steps[index]?.output === undefined ? "input" : "output")
-              if (window.matchMedia("(max-width: 1299px)").matches) {
-                requestAnimationFrame(() =>
-                  document
-                    .querySelector(".flow-workspace .inspector")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-                )
-              }
-            }}
-          />
-          <section className="inspector" aria-label="Chi tiết từng bước">
-            <div className="inspector-head">
-              <div className="inspector-title">
-                <Maximize2 size={13} />
-                {info[selectedMethod].name}
-                <ChevronRight size={12} style={{ color: "#a4ae9b" }} />
-                <span style={{ fontWeight: 450, color: "#85927a" }}>
-                  {view === "trace"
-                    ? (step?.stage ?? "Step inspector")
-                    : view === "schema"
-                      ? "Database schema"
-                      : "Final result"}
-                </span>
-              </div>
-              <div style={{ display: "flex", gap: 4 }}>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() =>
-                    document
-                      .querySelector(".pipeline-flow-panel")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                  }
-                >
-                  <GitBranch size={12} /> Sơ đồ
-                </Button>
-                <Button
-                  size="sm"
-                  variant={view === "trace" ? "secondary" : "ghost"}
-                  onClick={() => setView("trace")}
-                >
-                  <Code2 size={12} /> Trace
-                </Button>
-                <Button
-                  size="sm"
-                  variant={view === "schema" ? "secondary" : "ghost"}
-                  onClick={() => setView("schema")}
-                >
-                  <Database size={12} /> Schema
-                </Button>
-                <Button
-                  size="sm"
-                  variant={view === "results" ? "secondary" : "ghost"}
-                  onClick={() => setView("results")}
-                >
-                  <CheckCheck size={12} /> Result
-                </Button>
+                <option value="custom">
+                  Câu hỏi tùy chỉnh — không chấm EX
+                </option>
+                {filteredExamples.map((example) => (
+                  <option key={example.index} value={example.index}>
+                    #{String(example.index).padStart(4, "0")} ·{" "}
+                    {difficultyLabel(example.difficulty)} · {example.question}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                aria-label="Câu hỏi đầu vào"
+                value={question}
+                disabled={running}
+                onChange={(e) => setQuestion(e.target.value)}
+                maxLength={2000}
+              />
+              <div className="question-note">
+                <GitBranch size={11} />
+                {matchingExample
+                  ? `Spider dev · #${String(matchingExample.index).padStart(4, "0")} · ${difficultyLabel(matchingExample.difficulty)} · Có đáp án để chấm SQLite EX`
+                  : "Custom input · Chưa phân loại độ khó · Thực thi SQL, không có đáp án tham chiếu"}
               </div>
             </div>
-            <div className="inspector-body">
-              {view === "schema" ? (
-                <div className="schema-list">
-                  {schema.map((t) => (
-                    <div className="schema-table" key={t.name}>
-                      <h3>{t.name}</h3>
-                      <pre>{t.ddl}</pre>
-                    </div>
-                  ))}
+            <div className="run-config">
+              <div className="label" style={{ marginBottom: 3 }}>
+                Phương pháp
+              </div>
+              {methods.map((m) => (
+                <label
+                  key={m}
+                  className={`method-toggle ${boot && !boot.readiness[m]?.ready ? "disabled" : ""}`}
+                  title={boot?.readiness[m]?.reason}
+                >
+                  <input
+                    type="checkbox"
+                    checked={chosen.includes(m)}
+                    disabled={running || !boot?.readiness[m]?.ready}
+                    onChange={(e) =>
+                      setChosen((old) =>
+                        e.target.checked
+                          ? [...old, m]
+                          : old.filter((x) => x !== m),
+                      )
+                    }
+                  />
+                  {info[m].name}
+                  <small>{m === "codex_mcp" ? "SDK + MCP" : "LLM API"}</small>
+                </label>
+              ))}
+              <div className="run-action">
+                <Button
+                  disabled={
+                    !boot ||
+                    busy ||
+                    running ||
+                    !chosen.length ||
+                    !question.trim()
+                  }
+                  onClick={start}
+                >
+                  {busy ? (
+                    <Loader2 size={13} className="spin" />
+                  ) : (
+                    <Play size={13} />
+                  )}{" "}
+                  Chạy pipeline <ArrowRight size={14} />
+                </Button>
+                {running && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={cancel}
+                    title="Dừng phiên chạy"
+                  >
+                    <Square size={13} />
+                  </Button>
+                )}
+              </div>
+              <div className="tiny" style={{ fontSize: 9 }}>
+                Mỗi phương pháp dùng runner gốc · {boot?.model ?? "…"}
+              </div>
+            </div>
+          </section>
+          <div className="toolbar">
+            <span className="section-heading">
+              <Radio size={14} />
+              {replay !== null ? "Replay timeline" : "Live pipeline"}{" "}
+              <Badge variant="secondary" className={running ? "pulse" : ""}>
+                {statusText}
+              </Badge>
+            </span>
+            <div className="toolbar-actions">
+              <select
+                aria-label="Mở lịch sử chạy"
+                className="history-picker"
+                disabled={busy || historyBusy}
+                value={snapshot?.meta.id ?? ""}
+                onChange={(e) => {
+                  const run = history.find((r) => r.id === e.target.value)
+                  if (run) openRun(run)
+                }}
+              >
+                <option value="">Lịch sử chạy</option>
+                {history.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.id.slice(0, 6)} · {r.question}
+                  </option>
+                ))}
+              </select>
+              <span
+                className="tiny"
+                style={{ fontFamily: "monospace", marginRight: 8 }}
+              >
+                {snapshot
+                  ? `${Math.max(0, elapsed).toFixed(1)}s · ${visibleEvents.length} events`
+                  : "Đang chờ input"}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!snapshot || running}
+                onClick={() => {
+                  setReplay(0)
+                  setPlaying(true)
+                  setSelectedStep(null)
+                }}
+              >
+                <RotateCcw size={12} /> Phát lại
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!snapshot}
+                onClick={exportRun}
+              >
+                <ArrowDownToLine size={12} /> JSON
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Xóa phiên đang xem"
+                title="Xóa phiên đang xem"
+                disabled={!snapshot || running || historyBusy}
+                onClick={() =>
+                  snapshot &&
+                  setPendingDelete({ type: "one", run: snapshot.meta })
+                }
+              >
+                <Trash2 size={14} />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={
+                  historyBusy ||
+                  !history.some((run) => run.status !== "running")
+                }
+                onClick={() => setPendingDelete({ type: "all" })}
+              >
+                <Trash2 size={12} /> Xóa lịch sử
+              </Button>
+            </div>
+          </div>
+          {replay !== null && (
+            <div className="replay-strip">
+              <button
+                aria-label={playing ? "Tạm dừng phát lại" : "Tiếp tục phát lại"}
+                onClick={() => setPlaying(!playing)}
+                style={{ border: 0, background: "none" }}
+              >
+                {playing ? <Pause size={13} /> : <Play size={13} />}
+              </button>
+              <span>
+                {replay}/{snapshot?.events.length} events
+              </span>
+              <input
+                aria-label="Vị trí phát lại"
+                type="range"
+                min="0"
+                max={snapshot?.events.length ?? 0}
+                value={replay}
+                onChange={(e) => {
+                  setReplay(+e.target.value)
+                  setPlaying(false)
+                  setSelectedStep(null)
+                }}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setReplay(null)
+                  setPlaying(false)
+                }}
+              >
+                Xem toàn bộ
+              </Button>
+            </div>
+          )}
+          <div
+            className="flow-method-tabs"
+            role="tablist"
+            aria-label="Chọn sơ đồ phương pháp"
+          >
+            {methods.map((method) => {
+              const entries = visibleEvents.filter((e) => e.method === method)
+              const MethodIcon = info[method].icon
+              const output = entries.find(
+                (e) => e.stage === "SQLite execution" && e.kind === "finish",
+              )?.output as Result | undefined
+              const failed = entries.some(
+                (e) =>
+                  e.kind === "failed" ||
+                  (e.stage === "SQLite execution" && e.kind === "error"),
+              )
+              const status = output?.evaluation
+                ? output.evaluation.correct
+                  ? "EX MATCH"
+                  : "EX MISMATCH"
+                : snapshot && !snapshot.meta.methods.includes(method)
+                  ? "KHÔNG CHỌN"
+                  : failed
+                    ? "FAILED"
+                    : output
+                      ? "EXECUTED"
+                      : entries.length && running
+                        ? "LIVE"
+                        : entries.some((e) => e.kind === "result")
+                          ? "SQL READY"
+                          : "CHỜ"
+              return (
+                <button
+                  key={method}
+                  type="button"
+                  role="tab"
+                  id={`method-tab-${method}`}
+                  aria-controls="method-flow-panel"
+                  aria-selected={selectedMethod === method}
+                  className="flow-method-tab"
+                  onClick={() => {
+                    setSelectedMethod(method)
+                    setSelectedStep(null)
+                    setView("trace")
+                  }}
+                >
+                  <MethodIcon size={15} />
+                  {info[method].name}
+                  <small>{status}</small>
+                </button>
+              )
+            })}
+          </div>
+          <div
+            className="flow-workspace"
+            role="tabpanel"
+            id="method-flow-panel"
+            aria-labelledby={`method-tab-${selectedMethod}`}
+          >
+            <PipelineFlow
+              title={info[selectedMethod].name}
+              method={selectedMethod}
+              steps={steps}
+              selectedId={step?.id}
+              runId={snapshot?.meta.id}
+              onSelect={(index) => {
+                setSelectedStep(index)
+                setView("trace")
+                setTab(steps[index]?.output === undefined ? "input" : "output")
+                if (window.matchMedia("(max-width: 1299px)").matches) {
+                  requestAnimationFrame(() =>
+                    document
+                      .querySelector(".flow-workspace .inspector")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                  )
+                }
+              }}
+            />
+            <section className="inspector" aria-label="Chi tiết từng bước">
+              <div className="inspector-head">
+                <div className="inspector-title">
+                  <Maximize2 size={13} />
+                  {info[selectedMethod].name}
+                  <ChevronRight size={12} style={{ color: "#71655b" }} />
+                  <span style={{ fontWeight: 450, color: "#70655c" }}>
+                    {view === "trace"
+                      ? (step?.stage ?? "Step inspector")
+                      : "Final result"}
+                  </span>
                 </div>
-              ) : view === "results" ? (
-                sql ? (
-                  <>
-                    <div className="inspect-intro">
-                      <Database size={12} />
-                      {snapshot?.meta.db_id} · SQLite read-only · tối đa 100
-                      dòng hiển thị
-                    </div>
-                    <div className="payload dark">
-                      <pre>{format(sql)}</pre>
-                    </div>
-                    {execution ? (
-                      <>
-                        <div className="result-table-wrap">
-                          <table>
-                            <thead>
-                              <tr>
-                                {execution.columns.map((c, i) => (
-                                  <th key={i}>{c}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {execution.rows.map((r, i) => (
-                                <tr key={i}>
-                                  {r.map((c, j) => (
-                                    <td key={j}>
-                                      {c === null ? "NULL" : String(c)}
-                                    </td>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <Button
+                    size="sm"
+                    variant={view === "trace" ? "secondary" : "ghost"}
+                    onClick={() => setView("trace")}
+                  >
+                    <Code2 size={12} /> Trace
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={view === "results" ? "secondary" : "ghost"}
+                    onClick={() => setView("results")}
+                  >
+                    <CheckCheck size={12} /> Result
+                  </Button>
+                </div>
+              </div>
+              <div className="inspector-body">
+                {view === "results" ? (
+                  sql ? (
+                    <>
+                      <div className="inspect-intro">
+                        <Database size={12} />
+                        {snapshot?.meta.db_id} · SQLite read-only · tối đa 100
+                        dòng hiển thị
+                      </div>
+                      <div className="payload dark">
+                        <pre>{format(sql)}</pre>
+                      </div>
+                      {execution ? (
+                        <>
+                          <div className="result-table-wrap">
+                            <table>
+                              <thead>
+                                <tr>
+                                  {execution.columns.map((c, i) => (
+                                    <th key={i}>{c}</th>
                                   ))}
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        <p className="tiny" style={{ marginTop: 9 }}>
-                          {execution.rows.length} dòng
-                          {execution.truncated ? " · kết quả đã cắt bớt" : ""}
+                              </thead>
+                              <tbody>
+                                {execution.rows.map((r, i) => (
+                                  <tr key={i}>
+                                    {r.map((c, j) => (
+                                      <td key={j}>
+                                        {c === null ? "NULL" : String(c)}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <p className="tiny" style={{ marginTop: 9 }}>
+                            {execution.rows.length} dòng
+                            {execution.truncated ? " · kết quả đã cắt bớt" : ""}
+                          </p>
+                          {execution.evaluation ? (
+                            <div
+                              className={`evaluation ${execution.evaluation.correct ? "" : "wrong"}`}
+                            >
+                              <CircleCheck size={14} />
+                              {execution.evaluation.correct
+                                ? "Khớp đáp án"
+                                : "Không khớp đáp án"}{" "}
+                              · SQLite EX trên 1 database
+                            </div>
+                          ) : (
+                            <div className="tiny">
+                              Câu hỏi tùy chỉnh: không chấm đúng/sai.
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="tiny" style={{ marginTop: 12 }}>
+                          {methodEvents.find(
+                            (e) =>
+                              e.stage === "SQLite execution" &&
+                              e.kind === "error",
+                          )
+                            ? `Lỗi thực thi: ${format(methodEvents.find((e) => e.stage === "SQLite execution" && e.kind === "error")?.output)}`
+                            : "Đang chờ thực thi SQLite…"}
                         </p>
-                        {execution.evaluation ? (
-                          <div
-                            className={`evaluation ${execution.evaluation.correct ? "" : "wrong"}`}
-                          >
-                            <CircleCheck size={14} />
-                            {execution.evaluation.correct
-                              ? "Khớp đáp án"
-                              : "Không khớp đáp án"}{" "}
-                            · SQLite EX trên 1 database
-                          </div>
-                        ) : (
-                          <div className="tiny">
-                            Câu hỏi tùy chỉnh: không chấm đúng/sai.
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <p className="tiny" style={{ marginTop: 12 }}>
-                        {methodEvents.find(
-                          (e) =>
-                            e.stage === "SQLite execution" &&
-                            e.kind === "error",
-                        )
-                          ? `Lỗi thực thi: ${format(methodEvents.find((e) => e.stage === "SQLite execution" && e.kind === "error")?.output)}`
-                          : "Đang chờ thực thi SQLite…"}
-                      </p>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      style={{ marginTop: 8 }}
-                      onClick={copy}
+                      )}
+                      {snapshot && (
+                        <SqlMetrics
+                          key={`${snapshot.meta.id}-${selectedMethod}`}
+                          runId={snapshot.meta.id}
+                          method={selectedMethod}
+                          hasReference={snapshot.meta.example_index != null}
+                          running={Boolean(running)}
+                        />
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        style={{ marginTop: 8 }}
+                        onClick={copy}
+                      >
+                        {copied ? <Check size={12} /> : <Copy size={12} />} Copy
+                        SQL
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="empty-state">
+                      <Database size={25} />
+                      SQL cuối cùng và dữ liệu trả về sẽ xuất hiện ở đây.
+                    </div>
+                  )
+                ) : step ? (
+                  <>
+                    <div className="inspect-intro">
+                      <span className="dot" />
+                      {step.status === "running"
+                        ? running
+                          ? "Đang xử lý…"
+                          : "Bước chưa hoàn tất"
+                        : step.status === "error"
+                          ? "Bước có lỗi"
+                          : "Đã nhận output"}{" "}
+                      <span
+                        style={{
+                          marginLeft: "auto",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                        }}
+                      >
+                        <Clock3 size={11} />
+                        {new Date(step.time * 1000).toLocaleTimeString("vi-VN")}
+                        {step.elapsed !== undefined
+                          ? ` · ${step.elapsed.toFixed(2)}s`
+                          : ""}
+                      </span>
+                    </div>
+                    <Tabs
+                      value={tab}
+                      onValueChange={setTab}
+                      className="inspect-tabs"
                     >
-                      {copied ? <Check size={12} /> : <Copy size={12} />} Copy
-                      SQL
-                    </Button>
-                  </>
-                ) : (
-                  <div className="empty-state">
-                    <Database size={25} />
-                    SQL cuối cùng và dữ liệu trả về sẽ xuất hiện ở đây.
-                  </div>
-                )
-              ) : step ? (
-                <>
-                  <div className="inspect-intro">
-                    <span className="dot" />
-                    {step.status === "running"
-                      ? running
-                        ? "Đang xử lý…"
-                        : "Bước chưa hoàn tất"
-                      : step.status === "error"
-                        ? "Bước có lỗi"
-                        : "Đã nhận output"}{" "}
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 5,
-                      }}
-                    >
-                      <Clock3 size={11} />
-                      {new Date(step.time * 1000).toLocaleTimeString("vi-VN")}
-                      {step.elapsed !== undefined
-                        ? ` · ${step.elapsed.toFixed(2)}s`
-                        : ""}
-                    </span>
-                  </div>
-                  <Tabs
-                    value={tab}
-                    onValueChange={setTab}
-                    className="inspect-tabs"
-                  >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <TabsList>
+                          <TabsTrigger value="input">
+                            Input / prompt
+                          </TabsTrigger>
+                          <TabsTrigger value="output">
+                            Output / SQL / kết quả
+                          </TabsTrigger>
+                        </TabsList>
+                        <Button variant="ghost" size="sm" onClick={copy}>
+                          {copied ? <Check size={12} /> : <Copy size={12} />}{" "}
+                          Copy
+                        </Button>
+                      </div>
+                      <TabsContent value="input">
+                        <StepPayload step={step} steps={steps} mode="input" />
+                      </TabsContent>
+                      <TabsContent value="output">
+                        <StepPayload step={step} steps={steps} mode="output" />
+                      </TabsContent>
+                    </Tabs>
                     <div
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
+                        marginTop: 12,
                       }}
                     >
-                      <TabsList>
-                        <TabsTrigger value="input">Input / prompt</TabsTrigger>
-                        <TabsTrigger value="output">
-                          Output / SQL / kết quả
-                        </TabsTrigger>
-                      </TabsList>
-                      <Button variant="ghost" size="sm" onClick={copy}>
-                        {copied ? <Check size={12} /> : <Copy size={12} />} Copy
-                      </Button>
+                      <span className="tiny">
+                        Phản hồi công khai từ runner gốc · không tạo bước giả
+                        lập
+                      </span>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={currentIndex <= 0}
+                          onClick={() => setSelectedStep(currentIndex - 1)}
+                        >
+                          ← Trước
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={currentIndex >= steps.length - 1}
+                          onClick={() => setSelectedStep(currentIndex + 1)}
+                        >
+                          Tiếp →
+                        </Button>
+                      </div>
                     </div>
-                    <TabsContent value="input">
-                      <StepPayload step={step} steps={steps} mode="input" />
-                    </TabsContent>
-                    <TabsContent value="output">
-                      <StepPayload step={step} steps={steps} mode="output" />
-                    </TabsContent>
-                  </Tabs>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginTop: 12,
-                    }}
-                  >
-                    <span className="tiny">
-                      Phản hồi công khai từ runner gốc · không tạo bước giả lập
-                    </span>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={currentIndex <= 0}
-                        onClick={() => setSelectedStep(currentIndex - 1)}
-                      >
-                        ← Trước
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={currentIndex >= steps.length - 1}
-                        onClick={() => setSelectedStep(currentIndex + 1)}
-                      >
-                        Tiếp →
-                      </Button>
+                  </>
+                ) : (
+                  <div className="empty-state">
+                    <FlaskConical size={27} />
+                    <div
+                      style={{
+                        fontSize: 14,
+                        color: "#756557",
+                        marginBottom: 5,
+                      }}
+                    >
+                      Mỗi bước đều có một câu chuyện.
                     </div>
+                    Chọn một phiên trong lịch sử hoặc chạy pipeline, rồi bấm một
+                    nút trên sơ đồ.
+                    <br />
+                    Bạn có thể chuyển giữa 4 phương pháp để đối chiếu cách xử
+                    lý.
                   </div>
-                </>
-              ) : (
-                <div className="empty-state">
-                  <FlaskConical size={27} />
-                  <div
-                    style={{ fontSize: 14, color: "#647557", marginBottom: 5 }}
-                  >
-                    Mỗi bước đều có một câu chuyện.
-                  </div>
-                  Chọn một phiên trong lịch sử hoặc chạy pipeline, rồi bấm một
-                  nút trên sơ đồ.
-                  <br />
-                  Bạn có thể chuyển giữa 4 phương pháp để đối chiếu cách xử lý.
-                </div>
-              )}
-            </div>
-          </section>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
         <footer className="footer">
           <span>

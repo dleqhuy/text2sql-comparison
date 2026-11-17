@@ -9,17 +9,17 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    border: 1px solid #dfe3da;
+    border: 1px solid #e3deda;
     background: #fff;
     border-radius: 8px;
     padding: 12px 15px;
-    color: #737d6b;
+    color: #6e655e;
     font-size: 12px;
     font-weight: 550;
   }
   .flow-method-tab[aria-selected="true"] {
-    background: #263c32;
-    border-color: #263c32;
+    background: #4b382e;
+    border-color: #4b382e;
     color: #fff;
   }
   .flow-method-tab small {
@@ -27,7 +27,7 @@
     font-size: 9px;
     opacity: 0.8;
     padding: 3px 6px;
-    background: #89997c18;
+    background: #998a7c18;
     border-radius: 4px;
   }
   .flow-workspace {
@@ -38,7 +38,7 @@
   }
   .pipeline-flow-panel {
     min-width: 0;
-    border: 1px solid #dfe3da;
+    border: 1px solid #e3deda;
     border-radius: 10px;
     background: #fff;
     overflow: hidden;
@@ -49,7 +49,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 16px 20px;
-    border-bottom: 1px solid #e7ebe1;
+    border-bottom: 1px solid #ebe6e1;
   }
   .flow-heading > div {
     display: flex;
@@ -62,30 +62,30 @@
   }
   .flow-heading > span {
     font-size: 11px;
-    color: #87937c;
+    color: #70665c;
   }
   .flow-kicker {
     font-size: 9px;
     letter-spacing: 1.6px;
-    color: #869a75;
+    color: #766556;
     font-weight: 700;
   }
   .flow-canvas {
     height: 650px;
     width: 100%;
-    background: #fafbf8;
+    background: #fbf9f8;
   }
   .flow-lane {
     height: 100%;
     width: 100%;
-    border-top: 1px solid #d5dfcf;
-    border-bottom: 1px solid #e1e7dd;
-    background: #eef2e990;
+    border-top: 1px solid #dfd6cf;
+    border-bottom: 1px solid #e7e2dd;
+    background: #f2ede990;
     pointer-events: none;
   }
   .flow-lane > span {
     display: block;
-    color: #8b987f;
+    color: #71665b;
     letter-spacing: 1.6px;
     font-size: 11px;
     font-weight: 650;
@@ -95,13 +95,13 @@
     z-index: -1 !important;
   }
   .flow-task {
-    border: 1.5px solid #a8b59f;
+    border: 1.5px solid #b5a99f;
     background: #fff;
     padding: 13px 14px 10px;
     border-radius: 10px;
     height: 114px;
-    box-shadow: 0 2px 4px #263c3205;
-    color: #34432d;
+    box-shadow: 0 2px 4px #4b382e05;
+    color: #43372d;
   }
   .flow-task-heading {
     display: flex;
@@ -115,7 +115,7 @@
     flex-shrink: 0;
   }
   .flow-task p {
-    color: #86917d;
+    color: #6e655e;
     font-size: 11px;
     line-height: 1.5;
     margin: 7px 0 9px;
@@ -128,12 +128,12 @@
     display: flex;
     justify-content: space-between;
     gap: 8px;
-    color: #93a086;
+    color: #72655a;
     font-family: monospace;
     font-size: 9px;
   }
   .flow-task.done {
-    border-color: #819c6f;
+    border-color: #9c846f;
   }
   .flow-task.running {
     border-color: #d4a34c;
@@ -154,24 +154,24 @@
   }
   .flow-task.planned {
     border-style: dashed;
-    border-color: #c8d1c1;
-    color: #99a390;
-    background: #f9fbf7;
+    border-color: #d1c8c1;
+    color: #70655c;
+    background: #fbf9f7;
     box-shadow: none;
   }
   .flow-task.planned p {
-    color: #aab3a3;
+    color: #70655c;
   }
   .flow-task.is-selected {
-    border-color: #365c41;
-    box-shadow: 0 0 0 3px #688d5128;
-    background: #f3f8ee;
+    border-color: #5c4836;
+    box-shadow: 0 0 0 3px #8d6d5128;
+    background: #f6f3f0;
   }
   .react-flow__node-task.selectable {
     cursor: pointer;
   }
   .react-flow__node-task:focus-visible .flow-task {
-    outline: 3px solid #8eae7f;
+    outline: 3px solid #ae957f;
     outline-offset: 3px;
   }
   .react-flow__handle {
@@ -179,7 +179,7 @@
     height: 5px;
     min-width: 5px;
     min-height: 5px;
-    background: #8ea580;
+    background: #a59180;
     border: 0;
     opacity: 0.35;
     pointer-events: none;
@@ -208,13 +208,13 @@
     stroke-width: 1.5;
   }
   .flow-gateway.done polygon {
-    fill: #eff6e8;
-    stroke: #88a76d;
+    fill: #f3efeb;
+    stroke: #a7886d;
   }
   .flow-gateway.planned polygon {
-    fill: #fafbf7;
+    fill: #fbf9f7;
     stroke-dasharray: 5 4;
-    stroke: #c6cfbd;
+    stroke: #cfc5bd;
   }
   .flow-gateway .flow-task-heading {
     justify-content: center;
@@ -244,25 +244,25 @@
   .flow-branches span {
     font-size: 8px;
     padding: 3px 5px;
-    border: 1px dashed #d5d9cc;
-    color: #a2a995;
+    border: 1px dashed #d9d2cc;
+    color: #71655b;
     border-radius: 3px;
   }
   .flow-branches .chosen {
-    background: #e4efd9;
-    border: 1px solid #91ad79;
-    color: #446135;
+    background: #ebe4dd;
+    border: 1px solid #ad9179;
+    color: #5f4a37;
     font-weight: 700;
   }
   .flow-legend {
     padding: 11px 16px;
-    border-top: 1px solid #e7ebe1;
+    border-top: 1px solid #ebe6e1;
     display: flex;
     flex-wrap: wrap;
     gap: 10px 15px;
     align-items: center;
     font-size: 10px;
-    color: #849078;
+    color: #70655c;
   }
   .flow-legend > span {
     display: flex;
@@ -276,7 +276,7 @@
     display: inline-block;
   }
   .flow-legend i.done {
-    background: #88a374;
+    background: #a38a74;
   }
   .flow-legend i.running {
     background: #d5ae5f;
@@ -285,7 +285,7 @@
     background: #c4816c;
   }
   .flow-legend i.planned {
-    border: 1px dashed #a5af9b;
+    border: 1px dashed #afa49b;
   }
   .flow-legend small {
     width: 100%;
@@ -300,31 +300,31 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    border: 1px solid #dbe2d4;
+    border: 1px solid #e2dbd4;
     background: white;
     border-radius: 6px;
     padding: 8px 10px;
     font-size: 11px;
-    color: #6c815c;
+    color: #776555;
     box-shadow: 0 2px 5px #00000005;
   }
   .flow-focus:disabled {
     opacity: 0.5;
   }
   .react-flow__controls {
-    box-shadow: 0 2px 5px #263c3210;
-    border: 1px solid #dfe5d8;
+    box-shadow: 0 2px 5px #4b382e10;
+    border: 1px solid #e5ded8;
     border-radius: 5px;
     overflow: hidden;
   }
   .react-flow__controls-button {
     background: white;
-    color: #627854;
-    border-color: #edf0e9;
+    color: #786554;
+    border-color: #f0ece9;
   }
   .react-flow__minimap {
     background: #fff;
-    border: 1px solid #e1e6db;
+    border: 1px solid #e6e0db;
     border-radius: 6px;
     width: 130px;
     height: 80px;
@@ -348,23 +348,23 @@
   }
   .trace-caption {
     font-size: 11px;
-    color: #8b967e;
+    color: #70655c;
     margin: 10px 0;
     line-height: 1.6;
   }
   .trace-raw {
-    border-top: 1px solid #e8ece2;
+    border-top: 1px solid #ece7e2;
     padding-top: 12px;
     margin-top: 15px;
     font-size: 11px;
-    color: #8b967e;
+    color: #70655c;
   }
   .trace-raw summary {
     cursor: pointer;
   }
   .trace-raw pre {
-    color: #637357;
-    background: #f8faf5;
+    color: #736457;
+    background: #faf7f5;
     padding: 14px;
     max-height: 320px;
     overflow: auto;
@@ -373,30 +373,30 @@
   .trace-examples h4 {
     font-size: 12px;
     margin: 15px 0;
-    color: #738a60;
+    color: #786554;
   }
   .trace-examples details {
-    border: 1px solid #e4e9df;
+    border: 1px solid #e9e4df;
     border-radius: 7px;
     margin-bottom: 8px;
-    background: #fafbf8;
+    background: #fbf9f8;
     padding: 11px 13px;
   }
   .trace-examples summary {
     font-size: 11px;
     line-height: 1.6;
-    color: #667b56;
+    color: #786554;
     cursor: pointer;
   }
   .trace-examples summary > span {
-    color: #a1ad97;
+    color: #72655a;
     margin-right: 8px;
     font-family: monospace;
   }
   .trace-examples summary > strong {
     font-size: 10px;
     font-weight: 600;
-    background: #e9f0e2;
+    background: #efe9e3;
     padding: 2px 5px;
     border-radius: 3px;
     margin-right: 5px;
@@ -414,7 +414,7 @@
     gap: 8px;
     font-size: 10px;
     font-family: monospace;
-    color: #91a181;
+    color: #756557;
   }
   @media (min-width: 1300px) {
     .flow-workspace {

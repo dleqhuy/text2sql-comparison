@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import subprocess
 import threading
 import time
 import uuid
@@ -16,13 +17,16 @@ from app.live_models import (
     CancelResult,
     HistoryChange,
     HistorySelection,
+    Method,
     PipelineRun,
     RunCreate,
     RunPublic,
     RunSnapshot,
     SchemaObject,
+    SqlMetrics,
 )
 from app.services import pipeline
+from app.services.difficulty import difficulty
 
 router = APIRouter(prefix="/live", tags=["live"])
 
@@ -74,7 +78,12 @@ def bootstrap():
             }
     return {
         "examples": [
-            {"index": i, "db_id": r["db_id"], "question": r["question"]}
+            {
+                "index": i,
+                "db_id": r["db_id"],
+                "question": r["question"],
+                "difficulty": difficulty(r["sql"]) if r.get("sql") else None,
+            }
             for i, r in enumerate(rows)
         ],
         "databases": sorted({r["db_id"] for r in rows}),
@@ -207,6 +216,47 @@ def create_run(body: RunCreate):
 def read_run(run_id: str, session: SessionDep):
     record = find_run(run_id, session)
     return {"meta": record.payload, "events": pipeline.events(pipeline.RUNS / run_id)}
+
+
+@router.get("/runs/{run_id}/metrics/{method}", response_model=SqlMetrics)
+def read_metrics(run_id: str, method: Method, session: SessionDep):
+    record = find_run(run_id, session)
+    meta = record.payload
+    if meta["status"] == "running":
+        raise HTTPException(
+            status_code=409, detail="Chờ phiên chạy kết thúc trước khi đo."
+        )
+    index = meta.get("example_index")
+    rows = json.loads((pipeline.DATA / "dev.json").read_text())
+    if index is None or index < 0 or index >= len(rows):
+        raise HTTPException(
+            status_code=400, detail="Câu hỏi tự nhập không có SQL tham chiếu để chấm."
+        )
+    gold = rows[index]
+    if gold["db_id"] != meta["db_id"] or gold["question"] != meta["question"]:
+        raise HTTPException(
+            status_code=400, detail="Câu hỏi không khớp dữ liệu tham chiếu."
+        )
+    events = pipeline.events(pipeline.RUNS / run_id)
+    result = next(
+        (
+            e
+            for e in reversed(events)
+            if e["method"] == method and e["kind"] == "result"
+        ),
+        None,
+    )
+    if result is None:
+        raise HTTPException(
+            status_code=404, detail="Phương pháp chưa có SQL cuối để đánh giá."
+        )
+    try:
+        return pipeline.sql_metrics(meta["db_id"], result["output"], gold["query"])
+    except (ValueError, TimeoutError, subprocess.TimeoutExpired) as error:
+        raise HTTPException(
+            status_code=503,
+            detail="Không hoàn tất đo CM/EM/EX/VES trong giới hạn thời gian hoặc môi trường đánh giá chưa sẵn sàng.",
+        ) from error
 
 
 @router.post("/runs/{run_id}/cancel", response_model=CancelResult)

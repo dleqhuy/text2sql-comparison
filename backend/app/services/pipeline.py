@@ -115,12 +115,60 @@ def query_result(path, sql):
 
 def schema(db_id):
     with sqlite3.connect(database(db_id).as_uri() + "?mode=ro", uri=True) as connection:
-        return [
-            {"name": name, "ddl": ddl}
-            for name, ddl in connection.execute(
+        tables = list(
+            connection.execute(
                 "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
             )
-        ]
+        )
+
+        # Quote identifiers even for table names containing spaces or quotes.
+        def table_info(name):
+            quoted = '"' + name.replace('"', '""') + '"'
+            return list(connection.execute(f"PRAGMA table_info({quoted})"))
+
+        columns = {name: table_info(name) for name, _ in tables}
+        referenced_columns = {name.lower(): value for name, value in columns.items()}
+        result = []
+        for name, ddl in tables:
+            quoted = '"' + name.replace('"', '""') + '"'
+            foreign_keys = []
+            for key, sequence, target, source, destination, *_ in connection.execute(
+                f"PRAGMA foreign_key_list({quoted})"
+            ):
+                if destination is None:
+                    primary = sorted(
+                        (c for c in referenced_columns.get(target.lower(), []) if c[5]),
+                        key=lambda c: c[5],
+                    )
+                    destination = (
+                        primary[sequence][1] if sequence < len(primary) else None
+                    )
+                foreign_keys.append(
+                    {
+                        "id": key,
+                        "sequence": sequence,
+                        "column": source,
+                        "target_table": target,
+                        "target_column": destination,
+                    }
+                )
+            result.append(
+                {
+                    "name": name,
+                    "ddl": ddl,
+                    "columns": [
+                        {
+                            "name": c[1],
+                            "type": c[2],
+                            "primary_key": c[5],
+                            "not_null": bool(c[3]),
+                        }
+                        for c in columns[name]
+                    ],
+                    "foreign_keys": foreign_keys,
+                }
+            )
+        return result
 
 
 def run_path(run_id):
@@ -300,3 +348,29 @@ def shutdown():
         thread = state.get("thread")
         if thread is not None:
             thread.join(timeout=10)
+
+
+def sql_metrics(db_id, predicted, gold):
+    python = ROOT / ".venv/bin/python"
+    if not python.is_file():
+        raise ValueError("Chưa cài môi trường đánh giá .venv của dự án")
+    completed = subprocess.run(
+        [str(python), str(ROOT / "scripts/live_metrics.py")],
+        input=json.dumps(
+            {
+                "database": str(database(db_id)),
+                "predicted": predicted,
+                "gold": gold,
+                "db_id": db_id,
+                "tables": str(DATA / "tables.json"),
+            }
+        ),
+        capture_output=True,
+        text=True,
+        timeout=20,
+        env=environment(),
+        check=False,
+    )
+    if completed.returncode:
+        raise ValueError("Không chạy được bộ đánh giá; kiểm tra môi trường Spider/NLTK")
+    return json.loads(completed.stdout)

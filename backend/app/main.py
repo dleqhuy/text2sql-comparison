@@ -52,7 +52,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(
-    TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"]
+    TrustedHostMiddleware,
+    allowed_hosts=["localhost", "127.0.0.1", "testserver", "demo-text2sql.huylab.site"],
 )
 
 

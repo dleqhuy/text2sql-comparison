@@ -56,6 +56,7 @@ class Example(BaseModel):
     index: int
     question: str
     db_id: str
+    difficulty: Literal["easy", "medium", "hard", "extra"] | None
 
 
 class Readiness(BaseModel):
@@ -72,9 +73,26 @@ class Bootstrap(BaseModel):
     codex_model: str
 
 
+class SchemaColumn(BaseModel):
+    name: str
+    type: str
+    primary_key: int
+    not_null: bool
+
+
+class SchemaForeignKey(BaseModel):
+    id: int
+    sequence: int
+    column: str
+    target_table: str
+    target_column: str | None
+
+
 class SchemaObject(BaseModel):
     name: str
     ddl: str | None
+    columns: list[SchemaColumn]
+    foreign_keys: list[SchemaForeignKey]
 
 
 class CancelResult(BaseModel):
@@ -88,3 +106,26 @@ class HistorySelection(BaseModel):
 class HistoryChange(BaseModel):
     changed_ids: list[str]
     skipped_ids: list[str] = InputField(default_factory=list)
+
+
+class ComponentScore(BaseModel):
+    acc: float
+    rec: float
+    f1: float
+    label_total: int
+    pred_total: int
+
+
+class SqlMetrics(BaseModel):
+    cm: dict[str, ComponentScore] | None = None
+    cm_error: str | None = None
+    em: int | None = None
+    ex: int | None = None
+    ves: float | None = None
+    em_error: str | None = None
+    ex_error: str | None = None
+    ves_error: str | None = None
+    iterations: int = 0
+    predicted_ms: float | None = None
+    gold_ms: float | None = None
+    ves_valid_match: bool | None = None

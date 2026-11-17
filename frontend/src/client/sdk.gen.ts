@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { liveBootstrapData, liveBootstrapResponses, liveCancelRunData, liveCancelRunErrors, liveCancelRunResponses, liveClearHistoryData, liveClearHistoryResponses, liveCreateRunData, liveCreateRunErrors, liveCreateRunResponses, liveDeleteRunData, liveDeleteRunErrors, liveDeleteRunResponses, liveListRunsData, liveListRunsResponses, liveReadRunData, liveReadRunErrors, liveReadRunResponses, liveReadSchemaData, liveReadSchemaErrors, liveReadSchemaResponses, liveRestoreHistoryData, liveRestoreHistoryErrors, liveRestoreHistoryResponses, liveStreamRunData, liveStreamRunErrors, liveStreamRunResponses, utilsHealthCheckData, utilsHealthCheckResponses } from './types.gen';
+import type { liveBootstrapData, liveBootstrapResponses, liveCancelRunData, liveCancelRunErrors, liveCancelRunResponses, liveClearHistoryData, liveClearHistoryResponses, liveCreateRunData, liveCreateRunErrors, liveCreateRunResponses, liveDeleteRunData, liveDeleteRunErrors, liveDeleteRunResponses, liveListRunsData, liveListRunsResponses, liveReadMetricsData, liveReadMetricsErrors, liveReadMetricsResponses, liveReadRunData, liveReadRunErrors, liveReadRunResponses, liveReadSchemaData, liveReadSchemaErrors, liveReadSchemaResponses, liveRestoreHistoryData, liveRestoreHistoryErrors, liveRestoreHistoryResponses, liveStreamRunData, liveStreamRunErrors, liveStreamRunResponses, utilsHealthCheckData, utilsHealthCheckResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -115,6 +115,17 @@ export class LiveService {
         return (options.client ?? client).get<liveReadRunResponses, liveReadRunErrors, ThrowOnError>({
             responseType: 'json',
             url: '/api/v1/live/runs/{run_id}',
+            ...options
+        });
+    }
+
+    /**
+     * Read Metrics
+     */
+    public static readMetrics<ThrowOnError extends boolean = true>(options: Options<liveReadMetricsData, ThrowOnError>) {
+        return (options.client ?? client).get<liveReadMetricsResponses, liveReadMetricsErrors, ThrowOnError>({
+            responseType: 'json',
+            url: '/api/v1/live/runs/{run_id}/metrics/{method}',
             ...options
         });
     }

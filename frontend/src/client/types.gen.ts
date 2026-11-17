@@ -47,6 +47,32 @@ export type CancelResult = {
 };
 
 /**
+ * ComponentScore
+ */
+export type ComponentScore = {
+    /**
+     * Acc
+     */
+    acc: number;
+    /**
+     * Rec
+     */
+    rec: number;
+    /**
+     * F1
+     */
+    f1: number;
+    /**
+     * Label Total
+     */
+    label_total: number;
+    /**
+     * Pred Total
+     */
+    pred_total: number;
+};
+
+/**
  * Example
  */
 export type Example = {
@@ -62,6 +88,10 @@ export type Example = {
      * Db Id
      */
     db_id: string;
+    /**
+     * Difficulty
+     */
+    difficulty: 'easy' | 'medium' | 'hard' | 'extra' | null;
 };
 
 /**
@@ -194,6 +224,54 @@ export type RunSnapshot = {
 };
 
 /**
+ * SchemaColumn
+ */
+export type SchemaColumn = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Type
+     */
+    type: string;
+    /**
+     * Primary Key
+     */
+    primary_key: number;
+    /**
+     * Not Null
+     */
+    not_null: boolean;
+};
+
+/**
+ * SchemaForeignKey
+ */
+export type SchemaForeignKey = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Sequence
+     */
+    sequence: number;
+    /**
+     * Column
+     */
+    column: string;
+    /**
+     * Target Table
+     */
+    target_table: string;
+    /**
+     * Target Column
+     */
+    target_column: string | null;
+};
+
+/**
  * SchemaObject
  */
 export type SchemaObject = {
@@ -205,6 +283,70 @@ export type SchemaObject = {
      * Ddl
      */
     ddl: string | null;
+    /**
+     * Columns
+     */
+    columns: Array<SchemaColumn>;
+    /**
+     * Foreign Keys
+     */
+    foreign_keys: Array<SchemaForeignKey>;
+};
+
+/**
+ * SqlMetrics
+ */
+export type SqlMetrics = {
+    /**
+     * Cm
+     */
+    cm?: {
+        [key: string]: ComponentScore;
+    } | null;
+    /**
+     * Cm Error
+     */
+    cm_error?: string | null;
+    /**
+     * Em
+     */
+    em?: number | null;
+    /**
+     * Ex
+     */
+    ex?: number | null;
+    /**
+     * Ves
+     */
+    ves?: number | null;
+    /**
+     * Em Error
+     */
+    em_error?: string | null;
+    /**
+     * Ex Error
+     */
+    ex_error?: string | null;
+    /**
+     * Ves Error
+     */
+    ves_error?: string | null;
+    /**
+     * Iterations
+     */
+    iterations?: number;
+    /**
+     * Predicted Ms
+     */
+    predicted_ms?: number | null;
+    /**
+     * Gold Ms
+     */
+    gold_ms?: number | null;
+    /**
+     * Ves Valid Match
+     */
+    ves_valid_match?: boolean | null;
 };
 
 /**
@@ -460,6 +602,40 @@ export type liveReadRunResponses = {
 };
 
 export type liveReadRunResponse = liveReadRunResponses[keyof liveReadRunResponses];
+
+export type liveReadMetricsData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+        /**
+         * Method
+         */
+        method: 'din_sql' | 'mac_sql' | 'dail_sql' | 'codex_mcp';
+    };
+    query?: never;
+    url: '/api/v1/live/runs/{run_id}/metrics/{method}';
+};
+
+export type liveReadMetricsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type liveReadMetricsError = liveReadMetricsErrors[keyof liveReadMetricsErrors];
+
+export type liveReadMetricsResponses = {
+    /**
+     * Successful Response
+     */
+    200: SqlMetrics;
+};
+
+export type liveReadMetricsResponse = liveReadMetricsResponses[keyof liveReadMetricsResponses];
 
 export type liveCancelRunData = {
     body?: never;

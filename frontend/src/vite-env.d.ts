@@ -7,3 +7,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+// Versioned style imports bypass CSS cached by the demo CDN before no-store.
+declare module "*.css?versioned" {}

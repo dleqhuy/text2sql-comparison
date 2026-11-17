@@ -201,7 +201,7 @@ export default function PipelineFlow({
             variant={BackgroundVariant.Dots}
             gap={18}
             size={1}
-            color="#d9dfd4"
+            color="#dfd9d4"
           />
           <Controls showInteractive={false} />
           <MiniMap
@@ -211,12 +211,12 @@ export default function PipelineFlow({
             zoomable
             nodeColor={(node) =>
               node.type === "lane"
-                ? "#edf1e9"
+                ? "#f1ede9"
                 : node.data.status === "error"
                   ? "#cc8a77"
                   : node.data.status === "done"
-                    ? "#90ac7b"
-                    : "#d9dfd4"
+                    ? "#ac927b"
+                    : "#dfd9d4"
             }
           />
           <FocusStep id={selectedId} />

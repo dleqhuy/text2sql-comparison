@@ -1,0 +1,118 @@
+.sql-lab {
+  .schema-selector {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 14px;
+    font-size: 13px;
+  }
+  .schema-selector select {
+    max-width: 320px;
+  }
+  .schema-screen {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+  }
+  .schema-heading {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .schema-heading h2 {
+    font-size: 20px;
+    font-weight: 650;
+    margin-bottom: 6px;
+    overflow-wrap: anywhere;
+  }
+  .schema-heading p,
+  .schema-heading > span,
+  .schema-hint {
+    font-size: 12px;
+    color: #756557;
+  }
+  .schema-hint {
+    padding: 10px 20px;
+    margin: 0;
+  }
+  .schema-canvas {
+    height: clamp(420px, 70vh, 900px);
+    background: #f7f5f3;
+  }
+  .erd-table {
+    width: 330px;
+    background: white;
+    border: 1px solid #cbbdb0;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px #4b382e10;
+    overflow: hidden;
+  }
+  .erd-table h3 {
+    height: 48px;
+    margin: 0;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #ede6df;
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .erd-column {
+    height: 30px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid #f0ece8;
+    padding: 0 12px;
+    font-family: monospace;
+    font-size: 11px;
+  }
+  .erd-key {
+    width: 34px;
+    flex-shrink: 0;
+    color: #7b5f46;
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .erd-column-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .erd-type {
+    color: #6e655e;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .erd-column .react-flow__handle {
+    background: #866b53;
+    width: 6px;
+    height: 6px;
+  }
+  .schema-ddl {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .schema-ddl summary {
+    cursor: pointer;
+  }
+  .schema-ddl h3 {
+    margin: 18px 0 8px;
+    font-weight: 650;
+  }
+  @media (max-width: 600px) {
+    .schema-canvas .react-flow__minimap {
+      display: none;
+    }
+  }
+}

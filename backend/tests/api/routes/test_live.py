@@ -280,3 +280,49 @@ def test_dail_missing_resources_are_explained(client, monkeypatch):
     readiness = client.get(f"{PREFIX}/bootstrap").json()["readiness"]["dail_sql"]
     assert readiness["ready"] is False
     assert "CoreNLP" in readiness["reason"]
+
+
+def test_saved_run_metrics_require_reference_and_final_sql(client, monkeypatch):
+    monkeypatch.setattr(pipeline, "execute_run", fake_completed)
+    response = client.post(f"{PREFIX}/runs", json=BODY)
+    run_id = response.json()["id"]
+    wait_finished(client, run_id)
+    calls = []
+
+    def fake_metrics(db_id, predicted, gold):
+        calls.append((db_id, predicted, gold))
+        return {
+            "cm": {
+                "select": {
+                    "acc": 1,
+                    "rec": 1,
+                    "f1": 1,
+                    "pred_total": 1,
+                    "label_total": 1,
+                }
+            },
+            "em": 1,
+            "ex": 1,
+            "ves": 101.5,
+            "iterations": 10,
+        }
+
+    monkeypatch.setattr(pipeline, "sql_metrics", fake_metrics)
+    result = client.get(f"{PREFIX}/runs/{run_id}/metrics/din_sql")
+    assert result.status_code == 200
+    assert result.json()["em"] == result.json()["ex"] == 1
+    assert result.json()["ves"] == 101.5
+    assert result.json()["cm"]["select"]["f1"] == 1
+    assert result.json()["cm"]["select"]["label_total"] == 1
+    assert calls == [
+        ("concert_singer", "SELECT COUNT(*) FROM singer", "SELECT COUNT(*) FROM singer")
+    ]
+    assert client.get(f"{PREFIX}/runs/{run_id}/metrics/mac_sql").status_code == 404
+    assert client.get(f"{PREFIX}/runs/{run_id}/metrics/unknown").status_code == 422
+
+    custom = client.post(f"{PREFIX}/runs", json={**BODY, "example_index": None}).json()
+    wait_finished(client, custom["id"])
+    assert (
+        client.get(f"{PREFIX}/runs/{custom['id']}/metrics/din_sql").status_code == 400
+    )
+    assert len(calls) == 1

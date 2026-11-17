@@ -196,3 +196,21 @@ Các test tài khoản/email của template đã được loại khỏi bộ tes
 `npm run build` xuất frontend vào `backend/app/frontend/`; khi khởi động lại,
 FastAPI phục vụ cả bundle đó trên port 8100. Dev vẫn dùng Vite ở port 5173.
 API docs: <http://127.0.0.1:8100/docs>; schema: `/api/v1/openapi.json`.
+
+
+## Đo CM, EM, EX và VES trong Result
+
+Chọn phiên đã kết thúc → phương pháp → **Result** → **Tính CM / EM / EX / VES**.
+Có thể dùng phiên lịch sử; thao tác này không gọi mô hình và không thay đổi SQL đã lưu.
+Chỉ câu hỏi mẫu giữ nguyên, có `example_index` khớp `dev.json`, mới có SQL tham chiếu để chấm.
+
+- **CM:** điểm F1 từng thành phần từ cùng lần chạy evaluator Spider dùng cho EM. Thẻ CM hiển thị SELECT, WHERE, GROUP BY/HAVING, ORDER BY và KEYWORDS; bảng chi tiết giữ đủ 10 nhóm của `partial_scores`, gồm Precision, Recall, F1 và số phần tử dự đoán/đáp án. Không tạo một điểm CM trung bình tùy ý. Khi cả hai SQL không dùng thành phần đó, UI hiện dấu —. Prediction lỗi parser được thay bằng AST rỗng đúng evaluator gốc; CM có lý do kèm theo. Lỗi môi trường/gold khiến CM là N/A.
+- **EM:** Exact Set Match bằng parser và evaluator Spider gốc trên SQL dự đoán chưa chuẩn hóa. Parser không hỗ trợ prediction thì EM=0 kèm lý do; lỗi môi trường hoặc SQL tham chiếu hiển thị N/A. EM không phải so sánh chuỗi SQL và evaluator có thể bỏ qua literal.
+- **EX:** SQLite EX của dự án: so kết quả đầy đủ, giữ số lần lặp, xét thứ tự khi gold có ORDER BY và cho phép hoán vị cột nhất quán. SQL dự đoán không chạy được có EX=0; lỗi gold là N/A.
+- **VES demo:** kiểm tra kết quả theo tập hợp của BIRD, rồi đo 10 cặp prediction/gold. Mỗi cặp đo execute/fetch/close trên kết nối read-only mới, không gồm thời gian mở kết nối hoặc sinh SQL. Lọc tỷ số gold/pred bằng ngưỡng 3σ như bộ đo BIRD; điểm một câu là `100 * sqrt(mean(filtered_ratios))`. Không khớp kết quả hoặc prediction lỗi thì VES=0. Hết ngân sách đo hoặc không còn mẫu sau lọc thì N/A, không tạo điểm giả. Tổng ngân sách timing 5 giây; toàn bộ worker tối đa 20 giây.
+
+EM/EX trên UI là 0/1 cho một câu, không phải tỷ lệ trên tập dữ liệu. VES demo có thể lớn hơn 100 và dao động theo tải máy; không thay thế benchmark full-dev (script benchmark mặc định đo 100 cặp). VES dùng set matching nên có thể khác EX ở dữ liệu trùng, thứ tự hoặc hoán vị cột. Thời gian trung bình hiển thị là trước lọc; điểm VES dùng trung bình tỷ số sau lọc, không phải tỷ số hai thời gian trung bình.
+
+Endpoint: `GET /api/v1/live/runs/{run_id}/metrics/{method}`.
+Worker dùng `.venv/bin/python` của dự án, mã Spider trong workspace và tokenizer ở `.cache/nltk_data`.
+Kết quả cache theo run/method trong phiên trình duyệt; **Đo lại** thực hiện phép đo mới. Không cộng trung bình các câu đã bấm để tuyên bố điểm toàn bộ benchmark.

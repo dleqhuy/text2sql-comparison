@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import PipelineExplorer from "@/features/pipeline/PipelineExplorer"
-import "@/features/pipeline/pipeline.css"
+import "@/features/pipeline/pipeline.css?versioned"
 export const Route = createFileRoute("/")({
   component: () => (
     <div className="sql-lab">
