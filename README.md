@@ -7,6 +7,21 @@ Cấu hình model/backend nằm trong [báo cáo so sánh](results/full_dev/repo
 Mặc định CLI chạy DIN-SQL, MAC-SQL và DAIL-SQL; chọn cả bốn bằng
 `--methods few_shot mac_sql dail_sql codex_mcp`.
 
+Chạy câu hỏi tự nhập từ thư mục `text2sql/`, không cần bật app:
+
+```bash
+./run-comparison.sh --question "What are the names of all singers?" --db-id concert_singer --methods few_shot mac_sql dail_sql codex_mcp --codex-model gpt-6-luna
+```
+
+`--question` và `--db-id` phải đi cùng nhau, không dùng chung với `--count`,
+`--data-dir`, `--evaluate-only` hoặc `--resume`; `--workers` giữ mặc định 1.
+Database phải có trong `downloads/spider_data/` (hoặc `--spider-data`).
+Runner in SQL và tối đa 100 dòng dữ liệu, lưu `results.json` cùng
+`<method>/result.json`, `events.jsonl` và `process.log` trong thư mục output.
+Mặc định tự tạo thư mục `results/custom-...`; có thể đặt `--output` mới.
+Câu hỏi tự nhập không có điểm CM/EM/EX/VES vì không có SQL đáp án.
+Thêm `--dry-run` để xem lệnh mà không gọi model hay ghi file.
+
 ## Các repo đã fork
 
 | Phương pháp | Repo fork | Repo gốc |
@@ -27,6 +42,10 @@ chạy `npm ci`, `uv sync --project backend --locked`, `npm run setup:env`, rồ
 `npm run dev`. Mở <http://127.0.0.1:5173> để vào thẳng dashboard, không cần tài khoản.
 React/TypeScript có timeline và prompt/response inspector; FastAPI phục vụ API/SSE,
 PostgreSQL lưu lịch sử chung của workspace. Xem [hướng dẫn SQL / Lab](notes/live.md).
+
+**Chuẩn bị demo một người, 5–7 phút:** [kịch bản và checklist](notes/demo-script.md),
+[lời thoại kèm thao tác UI](notes/demo-talk-track.md). Nội dung gồm input/output
+pipeline và bốn độ đo CM, EM, EX, VES.
 
 Giới thiệu dữ liệu: [Spider 1.0, cấu trúc mẫu, train/dev và cách chấm](notes/dataset.md).
 

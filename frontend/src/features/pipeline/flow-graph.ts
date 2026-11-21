@@ -3,11 +3,18 @@ import {
   blueprints,
   classification,
   laneTitles,
+  macAgents,
+  record,
   stageSpec,
   stepDetails,
   type Method,
   type Step,
 } from "./flow-model.ts"
+import { describeStep, methodStages } from "./method-stages.ts"
+import { createCodexFlow } from "./codex-flow.ts"
+import { createMacFlow } from "./mac-flow.ts"
+import { placeEdgeLabels } from "./edge-labels.ts"
+import { separateEvaluation } from "./evaluation-frame.ts"
 
 export type TaskData = {
   title: string
@@ -15,14 +22,28 @@ export type TaskData = {
   stage: string
   status: string
   stepIndex?: number
+  detailId?: string
   attempt?: number
   elapsed?: number
+  llmAttempts?: number
   gateway?: boolean
   branch?: string
 }
 export type Task = Node<TaskData, "task">
 export type Lane = Node<{ title: string }, "lane">
-export type FlowNode = Task | Lane
+export type Session = Node<
+  {
+    title: string
+    subtitle: string
+    status: string
+    stepIndex?: number
+    footer?: string
+    compact?: boolean
+    supplemental?: boolean
+  },
+  "session"
+>
+export type FlowNode = Task | Lane | Session
 
 function preview(step: Step, steps: Step[]) {
   const details = stepDetails(step, steps)
@@ -30,18 +51,62 @@ function preview(step: Step, steps: Step[]) {
     return typeof step.output === "string"
       ? step.output
       : "Mở bản ghi để xem lỗi"
+  if (macAgents[step.stage]) {
+    const output = record(step.output)
+    if (step.stage === "Selector · state")
+      return step.status === "running"
+        ? "Đang chuẩn bị schema…"
+        : step.calls?.length
+          ? "Đã gọi LLM chọn schema · mở xem prompt"
+          : output?.pruned === false
+            ? "Giữ schema · không gọi LLM"
+            : "Mở xem schema và trạng thái"
+    if (step.stage === "Refiner · state")
+      return step.status === "running"
+        ? "Đang chạy thử / sửa SQL…"
+        : output?.send_to === "Refiner"
+          ? "Đã sinh SQL sửa · cần chạy thử lại"
+          : "Kết thúc kiểm tra · chưa đối chiếu gold SQL"
+  }
   if (details.table)
     return `${details.table.rows.length} dòng hiển thị${details.table.truncated ? " · đã cắt bớt" : ""}${details.table.evaluation ? (details.table.evaluation.correct ? " · EX khớp" : " · EX không khớp") : ""}`
+  if (
+    step.stage === "search_objects" &&
+    Array.isArray(record(step.output)?.objects)
+  ) {
+    const output = record(step.output)!
+    return `${(output.objects as unknown[]).length} đối tượng · tổng ${output.total}${output.has_more ? " · còn trang tiếp" : ""}`
+  }
+  if (step.stage === "Codex turn")
+    return step.status === "running"
+      ? "Agent đang khám phá schema / thử SQL / chờ xác nhận…"
+      : record(step.output)?.audit_verified === true
+        ? "SQL đã được runner chấp nhận · chưa chấm EX"
+        : "Mở xem SQL trả về và trạng thái phiên"
+  if (step.stage === "Classification")
+    return classification([step])
+      ? `${classification([step])} · chọn prompt sinh SQL tương ứng`
+      : step.status === "running"
+        ? "Đang phân loại câu hỏi…"
+        : "Mở xem phản hồi phân loại; chưa có nhãn rõ ràng"
   if (details.examples)
     return `${details.examples.length} ví dụ được chọn · bấm xem prompt`
   if (details.sql) return details.sql
   if (details.response) return details.response
   return step.status === "running"
     ? "Đang chờ phản hồi thực tế…"
-    : "Bấm để xem input và output"
+    : (describeStep(step)?.output ?? "Bấm để xem input và output")
 }
 
 export function createFlow(method: Method, steps: Step[], selectedId?: string) {
+  if (method === "codex_mcp")
+    return placeEdgeLabels(
+      separateEvaluation(createCodexFlow(steps, selectedId, preview)),
+    )
+  if (method === "mac_sql")
+    return placeEdgeLabels(
+      separateEvaluation(createMacFlow(steps, selectedId, preview)),
+    )
   const bins = new Map<string, number>()
   const placements: {
     id: string
@@ -68,6 +133,9 @@ export function createFlow(method: Method, steps: Step[], selectedId?: string) {
         stepIndex: i,
         attempt: step.attempt,
         elapsed: step.elapsed,
+        llmAttempts: step.calls?.length,
+        branch:
+          step.stage === "Classification" ? classification([step]) : undefined,
       },
       location.lane,
       location.column,
@@ -85,37 +153,21 @@ export function createFlow(method: Method, steps: Step[], selectedId?: string) {
       {
         title: expected.title,
         stage: expected.stage,
-        subtitle: "Bước dự kiến của phương pháp",
+        subtitle:
+          macAgents[expected.stage]?.purpose ??
+          methodStages[method]?.[expected.stage]?.purpose ??
+          "Bước dự kiến của phương pháp",
         status: "planned",
       },
       expected.lane,
       expected.column,
     )
   }
-  if (method === "din_sql") {
-    const index = steps.map((s) => s.stage).lastIndexOf("Classification")
-    place(
-      "classification-gateway",
-      {
-        title: "Chọn nhánh prompt",
-        subtitle: classification(steps)
-          ? `Label ghi trong trace: ${classification(steps)}`
-          : "Chờ nhãn phân loại trong trace",
-        stage: "Classification gateway",
-        status: classification(steps) ? "done" : "planned",
-        gateway: true,
-        branch: classification(steps),
-        stepIndex: index >= 0 ? index : undefined,
-      },
-      2,
-      1,
-    )
-  }
   const columns = Math.max(4, ...placements.map((p) => p.column + 1))
+  const columnWidth = 390
   const laneHeights = laneTitles[method].map((_, lane) =>
     Math.max(
       205,
-      method === "din_sql" && lane === 2 ? 250 : 0,
       ...[...bins.entries()]
         .filter(([key]) => +key.split("-")[0] === lane)
         .map(([, count]) => count * 132 + 65),
@@ -128,9 +180,9 @@ export function createFlow(method: Method, steps: Step[], selectedId?: string) {
       type: "lane",
       data: { title },
       position: { x: 0, y: top },
-      width: columns * 245 + 70,
+      width: columns * columnWidth + 70,
       height: laneHeights[lane],
-      style: { width: columns * 245 + 70, height: laneHeights[lane] },
+      style: { width: columns * columnWidth + 70, height: laneHeights[lane] },
       selectable: false,
       focusable: false,
       draggable: false,
@@ -144,7 +196,7 @@ export function createFlow(method: Method, steps: Step[], selectedId?: string) {
       type: "task",
       parentId: `lane-${p.lane}`,
       extent: "parent",
-      position: { x: 35 + p.column * 245, y: 55 + p.offset * 132 },
+      position: { x: 35 + p.column * columnWidth, y: 55 + p.offset * 132 },
       data: p.data,
       width: 210,
       height: p.data.gateway ? 172 : 114,
@@ -162,6 +214,7 @@ export function createFlow(method: Method, steps: Step[], selectedId?: string) {
     target: string,
     planned = false,
     label?: string,
+    kind = "forward",
   ) {
     const a = placements.find((p) => p.id === source),
       b = placements.find((p) => p.id === target)
@@ -175,7 +228,8 @@ export function createFlow(method: Method, steps: Step[], selectedId?: string) {
       sourceHandle: same ? "bottom" : backwards ? "left-out" : "right",
       targetHandle: same ? "top" : backwards ? "right-in" : "left",
       type: "smoothstep",
-      label: label ?? (backwards && !planned ? "Quay lại" : undefined),
+      label,
+      data: { kind },
       animated: !planned && b.data.status === "running",
       style: {
         stroke: planned
@@ -195,37 +249,80 @@ export function createFlow(method: Method, steps: Step[], selectedId?: string) {
       labelBgPadding: [5, 3],
     })
   }
+  function transition(previous: string, current: string, step?: Step) {
+    if (current === "Run failed")
+      return { label: "Dừng do lỗi", kind: "failure" }
+    if (method === "din_sql") {
+      if (previous === "Schema linking" && current === "Classification")
+        return { label: "Schema links", kind: "forward" }
+      if (previous === "Classification" && current === "SQL generation")
+        return {
+          label: step ? classification([step]) : "Theo nhãn phân loại",
+          kind: "branch",
+        }
+      if (previous === "SQL generation" && current === "Self-correction")
+        return { label: "SQL ứng viên · chưa thực thi", kind: "forward" }
+      if (previous === "Self-correction" && current === "SQLite execution")
+        return { label: "SQL sau tự kiểm tra → chấm gold", kind: "evaluation" }
+    }
+    if (method === "dail_sql") {
+      if (
+        previous === "SQL generation · pass 1" &&
+        current === "Example selection · pass 2"
+      )
+        return {
+          label: "SQL sơ bộ → chọn lại ví dụ (lượt 2)",
+          kind: "data-dependency",
+        }
+      if (
+        previous.startsWith("Example selection") &&
+        current.startsWith("SQL generation")
+      )
+        return {
+          label: `Prompt đã ghép · lượt ${current.endsWith("1") ? 1 : 2}`,
+          kind: "forward",
+        }
+      if (
+        previous === "SQL generation · pass 2" &&
+        current === "SQLite execution"
+      )
+        return { label: "SQL lượt 2 → chấm gold", kind: "evaluation" }
+    }
+    return { label: undefined, kind: "forward" }
+  }
   steps.slice(1).forEach((step, i) => {
     const previous = steps[i]
-    if (
-      method === "din_sql" &&
-      previous.stage === "Classification" &&
-      step.stage === "SQL generation"
-    ) {
-      connect(previous.id, "classification-gateway")
-      connect("classification-gateway", step.id, false, classification(steps))
-    } else connect(previous.id, step.id)
+    const link = transition(previous.stage, step.stage, previous)
+    connect(previous.id, step.id, false, link.label, link.kind)
   })
   const blueprint = blueprints[method]
   blueprint.slice(1).forEach((current, i) => {
     const source = anchors.get(blueprint[i].stage)!,
       target = anchors.get(current.stage)!
-    if (method === "din_sql" && current.stage === "SQL generation") return
-    if (source.startsWith("planned-") || target.startsWith("planned-"))
-      connect(source, target, true)
+    if (source.startsWith("planned-") || target.startsWith("planned-")) {
+      const link = transition(blueprint[i].stage, current.stage)
+      connect(source, target, true, link.label, link.kind)
+    }
   })
-  if (method === "din_sql") {
-    const source = anchors.get("Classification")!,
-      target = anchors.get("SQL generation")!
-    if (!edges.some((e) => e.target === "classification-gateway"))
-      connect(source, "classification-gateway", source.startsWith("planned-"))
-    if (!edges.some((e) => e.source === "classification-gateway"))
-      connect(
-        "classification-gateway",
-        target,
-        target.startsWith("planned-"),
-        classification(steps),
-      )
+  for (const step of steps) {
+    const calls = step.calls ?? []
+    if (!calls.slice(0, -1).some((c) => c.status === "error")) continue
+    edges.push({
+      id: `provider-retry:${step.id}`,
+      source: step.id,
+      target: step.id,
+      sourceHandle: "left-out",
+      targetHandle: "top",
+      type: "providerRetry",
+      label: `Retry gọi LLM · ${calls.length}/3 lần`,
+      data: { kind: "provider-retry" },
+      animated: step.status === "running",
+      style: { stroke: "#367b88", strokeWidth: 2 },
+      markerEnd: { type: "arrowclosed" as MarkerType, color: "#367b88" },
+      labelStyle: { fontSize: 10, fill: "#367b88" },
+      labelBgStyle: { fill: "#fff" },
+      labelBgPadding: [5, 3],
+    })
   }
-  return { nodes, edges }
+  return placeEdgeLabels(separateEvaluation({ nodes, edges }))
 }

@@ -1,0 +1,45 @@
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Termes}
+\setsansfont{TeX Gyre Heros}
+\setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase]
+\usepackage[vietnamese]{babel}
+\usepackage[left=3cm,right=2cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{array,booktabs,longtable}
+\newlength{\TableWidth}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\LTpre}{10pt}
+\setlength{\LTpost}{10pt}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,labelsep=colon}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*,itemsep=3pt,topsep=4pt}
+\usepackage{setspace}
+\setstretch{1.1}
+\setlength{\parindent}{1cm}
+\setlength{\parskip}{4pt}
+\setlength{\emergencystretch}{3em}
+\usepackage{titlesec}
+\titleformat{\chapter}[display]{\normalfont\Large\bfseries\centering}{CHƯƠNG \thechapter}{8pt}{\Large}
+\titlespacing*{\chapter}{0pt}{-12pt}{20pt}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\usepackage{xurl}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdftitle={Giao diện cơ sở dữ liệu thế hệ mới: Khảo sát LLM-based Text-to-SQL},pdfauthor={Nhóm 11}}
+\addto\captionsvietnamese{%
+  \renewcommand{\contentsname}{Mục lục}%
+  \renewcommand{\listfigurename}{Danh mục hình ảnh}%
+  \renewcommand{\listtablename}{Danh mục bảng}%
+  \renewcommand{\bibname}{Tài liệu tham khảo}%
+}
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{2}
+% Equations retain the continuous (1)--(5) numbering of the source report.
+\usepackage{chngcntr}
+\counterwithout{equation}{chapter}

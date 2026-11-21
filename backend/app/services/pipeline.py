@@ -290,17 +290,27 @@ def execute_run(path, request, cancel):
                     )
                 continue
             sql = results[-1]["output"]
-            append(path, method, "start", "SQLite execution", input=sql)
+            index = request.get("example_index")
+            gold_sql = (
+                json.loads((DATA / "dev.json").read_text())[index]["query"]
+                if index is not None
+                else None
+            )
+            append(
+                path,
+                method,
+                "start",
+                "SQLite execution",
+                input={"sql": sql, "gold_sql": gold_sql},
+            )
             try:
                 output = query_result(database(request["db_id"]), sql)
                 # Score only an unchanged, selected Spider example. Custom input
                 # has no reference answer and is never labelled correct.
-                index = request.get("example_index")
-                if index is not None:
-                    gold = json.loads((DATA / "dev.json").read_text())[index]
+                if gold_sql is not None:
                     # Use the same SQLite EX rules as the comparison CLI.
                     output["evaluation"] = score_sql(
-                        database(request["db_id"]), sql, gold["query"]
+                        database(request["db_id"]), sql, gold_sql
                     )
                 append(path, method, "finish", "SQLite execution", output=output)
             except Exception as error:  # noqa: BLE001 - surface adapter/SQLite failures to UI

@@ -63,12 +63,40 @@ def din(row, source):
         module.creatiing_schema(str(source / "tables.json"))
     )
     original = module.generate
+    context = [{}]
 
     def generation(config, prompt, **kwargs):
         # Determine stage from the actual caller, including retry calls.
         caller = sys._getframe(1).f_code.co_name
         stage = "Self-correction" if caller == "GPT4_debug" else active[0]
-        return observed(stage, lambda text: original(config, text, **kwargs), prompt)
+
+        def generate(payload):
+            response = original(config, payload["prompt"], **kwargs)
+            output = {"response": response}
+            if stage == "Schema linking":
+                output["schema_links"] = (
+                    response.split("Schema_links: ", 1)[-1]
+                    if "Schema_links: " in response
+                    else "[]"
+                )
+            elif stage == "Classification":
+                label, sub_questions = module.classification_parts(
+                    response, row["question"]
+                )
+                output.update(label=label, sub_questions=sub_questions)
+            elif stage in ("SQL generation", "Self-correction"):
+                text = (
+                    response.split("SQL: ")[-1]
+                    if stage == "SQL generation"
+                    else response
+                )
+                output["sql"] = module.sql_response(
+                    text, select_fragment=stage == "Self-correction"
+                )
+            return output
+
+        result = observed(stage, generate, {"prompt": prompt, **context[0]})
+        return result["response"]
 
     active = ["Schema linking"]
     module.generate = generation
@@ -78,12 +106,25 @@ def din(row, source):
         ("easy_prompt_maker", "SQL generation"),
         ("medium_prompt_maker", "SQL generation"),
         ("hard_prompt_maker", "SQL generation"),
+        ("debuger", "Self-correction"),
     ]:
         function = getattr(module, name)
 
-        def maker(*args, _function=function, _stage=stage):
+        def maker(*args, _function=function, _stage=stage, _name=name, **kwargs):
             active[0] = _stage
-            return _function(*args)
+            fields = (
+                ("question", "db_id", "sql")
+                if _stage == "Self-correction"
+                else ("question", "db_id", "schema_links", "sub_questions")
+            )
+            context[0] = dict(zip(fields, args))
+            if _stage == "SQL generation":
+                context[0]["branch"] = {
+                    "easy_prompt_maker": "EASY",
+                    "medium_prompt_maker": "NON-NESTED",
+                    "hard_prompt_maker": "NESTED",
+                }[_name]
+            return _function(*args, **kwargs)
 
         setattr(module, name, maker)
     return module.predict_one(row)
@@ -98,6 +139,18 @@ def mac(row, source):
     from core.const import SYSTEM_NAME
 
     active = ["Connection check"]
+    refiner_checks = []
+
+    def verified(sql, checks):
+        if not checks or not isinstance(sql, str) or not sql.strip():
+            return False
+        check = checks[-1]
+        return (
+            check["sql"].strip() == sql.strip()
+            and isinstance(check["result"].get("data"), list)
+            and not check["result"].get("sqlite_error")
+        )
+
     original = llm.safe_call_llm
 
     def call(prompt, **kwargs):
@@ -110,12 +163,46 @@ def mac(row, source):
         @functools.wraps(original_talk)
         def talk(self, message, _talk=original_talk):
             active[0] = self.name
+            started = time.monotonic()
+            first_check = len(refiner_checks)
             emit("start", self.name + " · state", input=dict(message))
-            result = _talk(self, message)
-            emit("finish", self.name + " · state", output=dict(message))
+            try:
+                result = _talk(self, message)
+            except Exception as error:
+                emit(
+                    "error",
+                    self.name + " · state",
+                    output=str(error),
+                    elapsed=time.monotonic() - started,
+                )
+                raise
+            output = dict(message)
+            if self.name == "Refiner":
+                output["execution_verified"] = verified(
+                    message.get("pred", message.get("final_sql")),
+                    refiner_checks[first_check:],
+                )
+            emit(
+                "finish",
+                self.name + " · state",
+                output=output,
+                elapsed=time.monotonic() - started,
+            )
             return result
 
         cls.talk = talk
+    original_execute = agents.Refiner._execute_sql
+
+    def execute(self, sql, db_id):
+        result = observed(
+            "Refiner · execution",
+            lambda payload: original_execute(self, payload["sql"], payload["db_id"]),
+            {"sql": sql, "db_id": db_id},
+        )
+        refiner_checks.append({"sql": sql, "result": result})
+        return result
+
+    agents.Refiner._execute_sql = execute
     manager = ChatManager(
         data_path=os.path.relpath(source / "database", repo),
         tables_json_path=str(source / "tables.json"),
@@ -136,10 +223,15 @@ def mac(row, source):
         "send_to": SYSTEM_NAME,
     }
     manager.start(message)
-    return message.get("pred", "")
+    sql = message.get("pred", "")
+    if not verified(sql, refiner_checks):
+        raise RuntimeError(
+            "Refiner stopped without a successful execution of the returned SQL (repair limit, execution error or interruption). SQL was not sent for gold evaluation."
+        )
+    return sql
 
 
-async def codex(row, source):
+async def codex(row, source, reasoning_effort="low"):
     from codex_mcp_sql import runner
 
     examples = OUTPUT / "codex-input.json"
@@ -149,7 +241,7 @@ async def codex(row, source):
         db_root=source / "database",
         output=OUTPUT / "codex",
         model=os.environ.get("CODEX_MODEL", "gpt-6-luna"),
-        reasoning_effort="low",
+        reasoning_effort=reasoning_effort,
         limit=1,
         workers=1,
         timeout=180,
@@ -161,21 +253,52 @@ async def codex(row, source):
         resume=False,
     )
     original_write = runner.write_json
+    public_turn = {}
 
     def write(path, value):
         original_write(path, value)
         if path.name == "request.json":
-            emit("start", "Codex turn", input=value)
+            emit(
+                "start",
+                "Codex turn",
+                input={
+                    **value,
+                    "runtime": {
+                        "model": args.model,
+                        "reasoning_effort": args.reasoning_effort,
+                        "timeout_seconds": args.timeout,
+                        "query_timeout_seconds": args.query_timeout,
+                        "max_tool_calls": args.max_tool_calls,
+                        "max_rows": args.max_rows,
+                    },
+                },
+            )
         elif path.name == "turn.json":
             # The final public response and usage are sufficient; do not expose
             # reasoning items that may occur in the SDK's complete turn object.
-            emit(
-                "finish",
-                "Codex turn",
-                output={
+            public_turn.update(
+                {
                     k: value.get(k)
                     for k in ("status", "final_response", "usage", "error")
+                }
+            )
+        elif path.name == "result.json":
+            # Keep tools in their observed order and close the agent only after
+            # the runner has validated its final response against the MCP audit.
+            drain()
+            completed = value.get("status") == "completed"
+            emit(
+                "finish" if completed else "error",
+                "Codex turn",
+                output={
+                    **public_turn,
+                    "runner_status": value.get("status"),
+                    "sql": value.get("predicted_sql"),
+                    "audit_verified": True if completed else None,
+                    "tool_calls": value.get("tool_calls"),
+                    "error": value.get("error") or public_turn.get("error"),
                 },
+                elapsed=value.get("elapsed_seconds"),
             )
 
     runner.write_json = write
@@ -207,7 +330,10 @@ async def codex(row, source):
             await asyncio.sleep(0.15)
         await task
     finally:
-        drain()
+        try:
+            drain()
+        finally:
+            runner.write_json = original_write
     result = json.loads((OUTPUT / "codex/traces/0000/result.json").read_text())
     if result["status"] != "completed":
         raise RuntimeError(result.get("error", "Codex failed"))
@@ -228,13 +354,13 @@ def main():
     OUTPUT, METHOD = args.request.parent, args.method
     row = {k: request[k] for k in ("question", "db_id")}
     row["example_id"] = "live_0000"
-    source = ROOT / "downloads/spider_data"
+    source = Path(request.get("spider_data", ROOT / "downloads/spider_data"))
     started = time.monotonic()
     emit("start", "Input", input=row)
     emit("finish", "Input", output=row)
     try:
         if METHOD == "codex_mcp":
-            sql = asyncio.run(codex(row, source))
+            sql = asyncio.run(codex(row, source, request.get("reasoning_effort", "low")))
         elif METHOD == "dail_sql":
             from live_dail import run
 

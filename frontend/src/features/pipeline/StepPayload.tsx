@@ -1,4 +1,16 @@
-import { record, stepDetails, type Step, type TableResult } from "./flow-model"
+import {
+  macAgents,
+  evaluationDescription,
+  record,
+  stepDetails,
+  type Step,
+  type TableResult,
+} from "./flow-model"
+import MacStepPayload from "./MacStepPayload"
+import CodexStepPayload from "./CodexStepPayload"
+import MethodStepPayload from "./MethodStepPayload"
+import { describeStep } from "./method-stages"
+import RefinerCallPayload from "./RefinerCallPayload"
 
 function format(value: unknown) {
   return typeof value === "string"
@@ -37,6 +49,7 @@ export function TraceTable({ result }: { result: TableResult }) {
       <p className="trace-caption">
         {result.rows.length} dòng hiển thị
         {result.truncated ? " · kết quả đã cắt bớt" : ""}
+        {result.truncated_cells ? " · nội dung một số ô đã cắt bớt" : ""}
         {result.rows.length === 0 ? " · truy vấn trả về tập rỗng" : ""}
       </p>
       {result.evaluation && (
@@ -62,9 +75,59 @@ export default function StepPayload({
 }) {
   const details = stepDetails(step, steps)
   const raw = step[mode]
+  const description =
+    step.stage === "SQLite execution"
+      ? { purpose: evaluationDescription }
+      : describeStep(step)
+  if (
+    step.id.startsWith("mac_sql-") &&
+    ["Refiner · execution", "Refiner"].includes(step.stage)
+  )
+    return <RefinerCallPayload step={step} mode={mode} />
+  if (
+    step.id.startsWith("codex_mcp-") &&
+    ["Codex turn", "search_objects", "execute_sql"].includes(step.stage)
+  )
+    return (
+      <CodexStepPayload
+        step={step}
+        steps={steps}
+        mode={mode}
+        table={
+          details.table ? <TraceTable result={details.table} /> : undefined
+        }
+      />
+    )
+  if (description && !["Input", "SQLite execution"].includes(step.stage))
+    return <MethodStepPayload step={step} steps={steps} mode={mode} />
+  if (step.calls !== undefined && macAgents[step.stage])
+    return <MacStepPayload step={step} mode={mode} />
+  if (mode === "input" && details.executionInput)
+    return (
+      <>
+        {description && <p className="trace-caption">{description.purpose}</p>}
+        <div className="trace-sql">
+          <span className="trace-caption">SQL đã sinh</span>
+          <div className="payload dark">
+            <pre>{format(details.executionInput.sql)}</pre>
+          </div>
+        </div>
+        <div className="trace-sql">
+          <span className="trace-caption">Gold SQL · đáp án tham chiếu</span>
+          <div className="payload dark">
+            <pre>
+              {details.executionInput.gold_sql == null
+                ? "Không có gold SQL cho câu hỏi này."
+                : format(details.executionInput.gold_sql)}
+            </pre>
+          </div>
+        </div>
+      </>
+    )
   if (mode === "input")
     return (
       <>
+        {description && <p className="trace-caption">{description.purpose}</p>}
         {details.prompt && (
           <div className="trace-caption">
             Prompt được ghi tại <strong>{details.promptSource}</strong>.
@@ -92,6 +155,7 @@ export default function StepPayload({
     )
   return (
     <>
+      {description && <p className="trace-caption">{description.purpose}</p>}
       {details.sql && (
         <div className="trace-sql">
           <span className="trace-caption">SQL trong bản ghi thực tế</span>
@@ -101,6 +165,14 @@ export default function StepPayload({
         </div>
       )}
       {details.table && <TraceTable result={details.table} />}
+      {details.executionInput && details.table && !details.table.evaluation && (
+        <p className="trace-caption">
+          Chưa có đánh giá SQLite EX
+          {details.executionInput.gold_sql == null
+            ? ": câu hỏi không có gold SQL để đối chiếu."
+            : "."}
+        </p>
+      )}
       {details.examples && (
         <div className="trace-examples">
           <h4>{details.examples.length} ví dụ được chọn</h4>

@@ -13,21 +13,40 @@ from pathlib import Path
 from run_comparison import Comparison
 
 
-def ask_bounded(chatgpt, model, batch, temperature, n, attempts=3):
+def ask_bounded(chatgpt, model, batch, temperature, n, attempts=3, observe=None):
     """Use DAIL's provider calls and response shape with a finite live retry budget."""
     for attempt in range(attempts):
+        started = time.monotonic()
+        if observe:
+            observe("start", attempt + 1)
         try:
             if model in chatgpt.LLM.TASK_COMPLETIONS:
-                return chatgpt.ask_completion(model, batch, temperature)
-            response = chatgpt.ask_chat(
-                model, [{"role": "user", "content": batch[0]}], temperature, n
-            )
-            response["response"] = [response["response"]]
-            return response
-        except Exception:
+                response = chatgpt.ask_completion(model, batch, temperature)
+            else:
+                response = chatgpt.ask_chat(
+                    model, [{"role": "user", "content": batch[0]}], temperature, n
+                )
+                response["response"] = [response["response"]]
+        except Exception as error:
+            if observe:
+                observe(
+                    "error",
+                    attempt + 1,
+                    output=str(error),
+                    elapsed=time.monotonic() - started,
+                )
             if attempt + 1 == attempts:
                 raise
             time.sleep(1)
+        else:
+            if observe:
+                observe(
+                    "finish",
+                    attempt + 1,
+                    output=response,
+                    elapsed=time.monotonic() - started,
+                )
+            return response
 
 
 def training_cache(source, repo):
@@ -123,7 +142,20 @@ def run(row, source, output, emit):
         os.chdir(cwd)
         sys.argv = argv[1:]
         started = monotonic()
-        emit("start", stage, input={"script": script, "arguments": argv[2:]})
+        stage_input = {
+            "script": script,
+            "arguments": argv[2:],
+            "question": row["question"],
+            "db_id": row["db_id"],
+        }
+        if script == "generate_question.py":
+            stage_input["selector"] = argv[argv.index("--selector_type") + 1]
+            stage_input["k_shot"] = int(argv[argv.index("--k_shot") + 1])
+            if "--pre_test_result" in argv:
+                stage_input["preliminary_sql"] = (
+                    Path(argv[argv.index("--pre_test_result") + 1]).read_text().strip()
+                )
+        emit("start", stage, input=stage_input)
         try:
             if script == "generate_question.py":
                 from prompt.PromptICLTemplate import BasicICLPrompt
@@ -149,6 +181,7 @@ def run(row, source, output, emit):
                             "n_examples": result["n_examples"],
                             "prompt": result["prompt"],
                             "db_id": result["db_id"],
+                            "prompt_tokens": result.get("prompt_tokens"),
                         },
                         elapsed=monotonic() - started,
                     )
@@ -167,33 +200,21 @@ def run(row, source, output, emit):
                 original_ask = chatgpt.ask_llm
 
                 def ask(model, batch, temperature, n):
-                    emit(
-                        "start",
-                        "LLM response · pass " + phase,
-                        input={
-                            "model": model,
-                            "prompt": batch[0],
-                            "temperature": temperature,
-                            "n": n,
-                        },
+                    def observe(kind, attempt, **payload):
+                        if kind == "start":
+                            payload["input"] = {
+                                "model": model,
+                                "prompt": batch[0],
+                                "temperature": temperature,
+                                "n": n,
+                                "attempt": attempt,
+                                "max_attempts": 3,
+                            }
+                        emit(kind, "LLM response · pass " + phase, **payload)
+
+                    return ask_bounded(
+                        chatgpt, model, batch, temperature, n, observe=observe
                     )
-                    try:
-                        response = ask_bounded(chatgpt, model, batch, temperature, n)
-                    except Exception as error:
-                        emit(
-                            "error",
-                            "LLM response · pass " + phase,
-                            output=str(error),
-                            elapsed=monotonic() - started,
-                        )
-                        raise
-                    emit(
-                        "finish",
-                        "LLM response · pass " + phase,
-                        output=response,
-                        elapsed=monotonic() - started,
-                    )
-                    return response
 
                 chatgpt.ask_llm = ask
                 try:
@@ -211,7 +232,8 @@ def run(row, source, output, emit):
                     "finish",
                     stage,
                     output={
-                        "examples": 1,
+                        "target_count": 1,
+                        "question_tokens": target["question_toks"],
                         "training_cache_reused": reused,
                         "training_data": "Spider train + train_others",
                     },

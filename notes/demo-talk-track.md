@@ -1,158 +1,283 @@
-# Lời thoại demo Text-to-SQL — một người, khoảng 5–7 phút
+# Lời thoại demo bốn phương pháp Text-to-SQL
 
-**Cập nhật:** 17/11/2026.\
-**Cách tập:** Đọc liền các đoạn trích dẫn. Phần **[Bấm trên UI]** là chỉ dẫn thao tác, không đọc thành lời. Các mốc giờ là mục tiêu để tập, không phải thời gian chờ hệ thống.
+**Một người trình bày. Bản chuẩn: 6 phút 30 giây. Cập nhật: 19/11/2026.**
 
-Bản này đi cùng [kịch bản chi tiết và câu trả lời dự phòng](demo-script.md).
+## 1. Cách tập nói
 
-## Chuẩn bị trước khi bấm giờ
+Đọc các đoạn dưới nhãn Lời nói. Các đoạn Thao tác và Chỉ trên màn hình là chỉ dẫn để bấm UI, không đọc thành lời. Mỗi phương pháp có khoảng 70 giây, bao gồm cả thao tác.
 
-- Dùng màn hình desktop, mở app và kiểm tra lịch sử.
-- Chuẩn bị phiên **`e84db07f97fe`**, câu **How many singers do we have?**, database **`concert_singer`**. Phiên này đã chạy đủ bốn phương pháp và đều trả **6**.
-- Nếu lịch sử có nhiều câu trùng tên, mở trước đúng phiên và xác nhận cả bốn phương pháp có trace. Không dành thời gian trình bày để tìm phiên.
-- Trước buổi tập, trên phiên đó chọn **DIN-SQL → Result → Tính CM / EM / EX / VES** để kiểm tra SELECT F1=1, EM=1 và EX=1; chụp ảnh kết quả dự phòng. Số VES dao động, không học thuộc. Cache điểm có thể hết khi reload hoặc sau vài phút không xem, nên dành vài giây để tính lại nếu cần.
-- Bắt đầu tại màn hình **Lược đồ CSDL**, chọn `concert_singer`.
-- Với mỗi node, nếu inspector đang ở Result thì bấm **Trace**, rồi mở **Input / prompt** và **Output / SQL / kết quả** theo chỉ dẫn.
-- Output trong lời thoại thuộc phiên đã lưu nói trên. Nếu dùng phiên khác, đối chiếu bản ghi trước khi đọc; không gọi output chưa xuất hiện là kết quả thực tế.
+Tài liệu này giới thiệu cả bốn phương pháp trong một buổi demo. Phần giải thích sâu để học trước nằm trong [Sổ tay demo](demo-script.md). Không đọc toàn bộ sổ tay trong 5–7 phút.
 
-## 0:00–0:40 — Giới thiệu dữ liệu và cách demo
+Để chuyển sang DOCX, giữ tiêu đề, đoạn ngắn và nhãn đậm. Không dồn các đoạn thành bảng; mỗi cặp Thao tác và Lời nói nên nằm gần nhau trên trang.
 
-**[Bấm trên UI]** Tại **Lược đồ CSDL**, chỉ bảng `singer` và các đường nối giữa bảng. Không cần kéo hoặc zoom nếu đã nhìn rõ.
+## 2. Chuẩn bị trước khi bấm giờ
 
-> Dạ, em demo cách chuyển câu hỏi tự nhiên thành SQL trên database concert singer. Database có bốn bảng, nhưng câu hỏi “Có bao nhiêu ca sĩ?” chỉ cần bảng singer.
+Dùng câu số 0000, “How many singers do we have?”, trên database `concert_singer`. Mở thử phiên `e84db07f97fe` trong lịch sử, xác nhận cả bốn phương pháp có trace và đều trả 6.
 
-**[Bấm trên UI]** Về **Pipeline explorer**, mở phiên lịch sử đã chuẩn bị. Chỉ câu hỏi ở phần **Database & câu hỏi**, rồi chọn **DIN-SQL**.
+Tính thử CM, EM, EX, VES trên DIN-SQL của phiên này và chụp ảnh điểm dự phòng. SELECT F1, EM, EX đã kiểm tra đều bằng 1. Không học thuộc số VES. Nếu dùng phiên khác, đối chiếu dữ liệu rồi sửa lời nói cho phù hợp.
 
-> Đây là trace một phiên chạy thật đã lưu, với cùng đầu vào cho bốn phương pháp. Em sẽ chỉ input, output từng bước, rồi giải thích bốn độ đo ở phần cuối.
+Bắt đầu tại màn hình Lược đồ CSDL. Khi mở một bước, chọn Trace rồi lần lượt mở Input / prompt và Output / SQL / kết quả. Chỉ đoạn cần nói, không đọc toàn bộ prompt dài.
 
-## 0:40–3:10 — DIN-SQL: đi đầy đủ chuỗi xử lý
+## 3. Từ 0:00 đến 0:30 — Lời chào, giới thiệu đề tài và dẫn vào demo
 
-**[Bấm trên UI]** Chọn **Câu hỏi đầu vào** → **Trace** → **Input / prompt**; chỉ `question` và `db_id`. Mở **Output / SQL / kết quả**.
+**Thao tác:** Mở sẵn Lược đồ CSDL với database `concert_singer`. Khi đọc lời dẫn, không thao tác thêm. Đến câu hỏi minh họa, chỉ bảng `singer`, rồi về Pipeline explorer và mở phiên lịch sử đã chuẩn bị.
 
-> Đầu vào xác định câu hỏi và database cần truy vấn. Ở đây là câu đếm ca sĩ trên concert singer. SQL đáp án không được đưa vào cho phương pháp sinh câu trả lời; đáp án được dùng ở phần đánh giá cuối.
+**Lời nói:**
 
-**[Bấm trên UI]** Chọn **Liên kết schema** → mở input, chỉ phần câu hỏi/schema → mở output, chỉ `Schema_links: [singer.*]`.
+> Dạ, em chào cô. Nhóm em xin trình bày đề tài “Giao diện cơ sở dữ liệu thế hệ mới: Khảo sát các kỹ thuật chuyển đổi ngôn ngữ tự nhiên thành SQL bằng mô hình ngôn ngữ lớn”.
 
-> Bước đầu là liên kết schema. Input là prompt có câu hỏi và cấu trúc dữ liệu. Output xác định bảng singer liên quan đến từ “singers”. Bước này giúp mô hình biết cần dùng dữ liệu nào trước khi viết SQL.
+> Sau đây, em minh họa bốn phương pháp qua câu hỏi “Có bao nhiêu ca sĩ?”. Đây là câu hỏi có đáp án SQL tham chiếu trong tập dữ liệu Spider dev. Em sẽ chỉ rõ input và output của từng bước, sau đó giải thích bốn độ đo CM, EM, EX và VES.
 
-**[Bấm trên UI]** Chọn **Phân loại câu hỏi** → mở input → mở output, chỉ `Label: "EASY"`.
+**Nếu đã giới thiệu đề tài ở phần slide:** Thay hai đoạn trên bằng đoạn chuyển tiếp sau, không đọc cả hai phiên bản.
 
-> Tiếp theo, mô hình phân loại câu hỏi để chọn nhánh xử lý. Trong phiên này, output là EASY vì chỉ cần một bảng, không cần JOIN hay truy vấn lồng. Đây là nhãn dự đoán của DIN-SQL, khác với bộ lọc độ khó Spider trên UI.
+> Sau phần khảo sát, nhóm em xin minh họa cách bốn phương pháp xử lý cùng câu hỏi “Có bao nhiêu ca sĩ?”. Em dùng trace một phiên chạy thật đã lưu để chỉ input, output từng bước và giải thích các độ đo trên kết quả.
 
-**[Bấm trên UI]** Chọn **Sinh SQL** → mở **Input / prompt**, chỉ prompt của bước → mở output, chỉ SQL.
+## 4. Từ 0:30 đến 1:40 — DIN-SQL
 
-> Bước sinh SQL nhận prompt của nhánh đã chọn và trả về SELECT COUNT sao FROM singer. COUNT sao đếm số dòng trong bảng ca sĩ. Câu hỏi không có điều kiện lọc nên không cần WHERE, và không cần nối thêm bảng khác.
+### 4.1. Bước một: Liên kết câu hỏi với schema
 
-**[Bấm trên UI]** Chọn **Kiểm tra & sửa SQL** → mở input → mở output.
+**Thao tác:** Chọn DIN-SQL, bấm Liên kết schema. Mở Input / prompt, rồi Output / SQL / kết quả.
 
-> SQL vừa sinh được đưa vào bước rà soát. Output ở đây vẫn là câu SQL đếm ca sĩ. Như vậy, bước kiểm tra không nhất thiết phải thay đổi SQL; trong phiên này, câu SQL được giữ nguyên.
+**Chỉ trên màn hình:** Dòng `Schema_links: [singer.*]`.
 
-**[Bấm trên UI]** Chọn **SQL cuối** → mở output. Nếu thử mở input và thấy thông báo không có input riêng, chỉ thông báo đó.
+**Lời nói:**
 
-> Node SQL cuối ghi nhận câu lệnh runner trả về, không phải một lần gọi mô hình mới. Node này có thể không có input riêng được ghi lại; em chỉ diễn giải dữ liệu thực sự có trong trace.
+> Đầu tiên là phương pháp DIN-SQL. Bước một liên kết câu hỏi với schema. Input là prompt chứa câu hỏi và schema của database; output xác định bảng singer liên quan đến câu hỏi.
 
-**[Bấm trên UI]** Chọn **Thực thi & đánh giá** → input là SQL → output là bảng kết quả **6** và nhãn khớp đáp án.
+### 4.2. Bước hai: Phân loại câu hỏi
 
-> Cuối cùng, app chạy SQL trên SQLite thật. Output là sáu ca sĩ. Với câu hỏi mẫu, app còn so sánh kết quả với SQL tham chiếu. Đến đây mình đã kiểm tra được từ câu hỏi đầu vào đến dữ liệu trả về.
+**Thao tác:** Bấm Phân loại câu hỏi; mở input rồi output và chỉ `Label: "EASY"`.
 
-## 3:10–3:50 — MAC-SQL: chuyển giao giữa các agent
+**Lời nói:**
 
-**[Bấm trên UI]** Chọn **MAC-SQL** → **Selector · trạng thái** → mở input rồi output. Chỉ `send_to: Decomposer` và `pruned: false`.
+> Bước hai là phân loại. Input là prompt phân loại có câu hỏi và thông tin schema. Output là nhãn EASY vì mô hình nhận định không cần JOIN hay truy vấn lồng. Nhãn này giúp chọn prompt sinh SQL ở bước tiếp theo.
 
-> MAC-SQL chuyển trạng thái giữa các agent. Selector nhận câu hỏi và database; output cho thấy không cần thu gọn schema và chuyển sang Decomposer.
+### 4.3. Bước ba: Sinh SQL
 
-**[Bấm trên UI]** Chọn **Decomposer · gọi LLM** → mở input/prompt rồi output SQL.
+**Thao tác:** Bấm Sinh SQL; mở prompt input rồi output SQL.
 
-> Decomposer nhận prompt chứa câu hỏi và schema để sinh SQL. Với câu đơn giản, agent giải trực tiếp và trả SQL đếm ca sĩ.
+**Chỉ trên màn hình:** `SELECT COUNT(*) FROM singer`.
 
-**[Bấm trên UI]** Chọn **Refiner · trạng thái** → mở input rồi output; chỉ `pred`, `fixed: false`, `send_to: System`.
+**Lời nói:**
 
-> Refiner nhận trạng thái có SQL để kiểm tra bằng thực thi. Output cho thấy không cần sửa và chuyển về hệ thống. Vì vậy phiên này không có thêm lần gọi LLM sửa lỗi riêng.
+> Bước ba là sinh SQL. Từ kết quả phân loại, hệ thống chọn mẫu prompt EASY và ghép thông tin câu hỏi, schema làm input cho LLM. Output là câu SQL dùng COUNT sao để đếm số ca sĩ trong bảng singer.
 
-## 3:50–4:40 — DAIL-SQL: chọn ví dụ qua hai lượt
+### 4.4. Bước bốn: Kiểm tra và sửa SQL
 
-**[Bấm trên UI]** Chọn **DAIL-SQL** → **Lượt 1 · Chọn ví dụ** → mở output → mở một ví dụ có câu hỏi “How many aircrafts do we have?”.
+**Thao tác:** Bấm Kiểm tra & sửa SQL; mở input rồi output. Đối chiếu SQL trước và sau bước kiểm tra.
 
-> DAIL-SQL chọn ví dụ câu hỏi và SQL để hướng dẫn mô hình. Ví dụ đếm máy bay cũng dùng COUNT sao như câu đếm ca sĩ. Đây là ví dụ trong prompt, không phải truy vấn nhiều database.
+**Lời nói:**
 
-**[Bấm trên UI]** Chọn **Lượt 1 · Sinh SQL sơ bộ** → mở input/prompt → mở output SQL.
+> Bước bốn là kiểm tra và sửa SQL. Input là prompt yêu cầu LLM rà soát câu SQL vừa sinh và sửa nếu cần. Output là SQL sau kiểm tra. Trong ví dụ này, SQL được giữ nguyên nên hai câu trước và sau giống nhau.
 
-> Lượt đầu nhận prompt ghép từ schema, câu hỏi và các ví dụ, rồi trả SQL sơ bộ.
+### 4.5. Câu chuyển sang phương pháp tiếp theo
 
-**[Bấm trên UI]** Chọn **Lượt 2 · Chọn lại ví dụ** → mở output ví dụ/prompt. Sau đó chọn **Lượt 2 · Sinh SQL cuối** → mở input rồi output.
+**Thao tác:** Chỉ nhanh SQL cuối hoặc kết quả 6 nếu đủ thời gian, rồi chuyển tab MAC-SQL. Không cần đọc thêm một đoạn về thực thi ở đây vì sẽ trở lại Result khi giải thích độ đo.
 
-> Lượt hai sử dụng thêm SQL sơ bộ trong quá trình chọn ví dụ, rồi sinh SQL cuối từ prompt mới. Trong phiên này SQL cuối vẫn là đếm ca sĩ. Hai lượt không nhất thiết phải cho hai câu SQL khác nhau.
+**Lời nói:**
 
-## 4:40–5:30 — Codex MCP SQL: tương tác với công cụ
+> Điểm chính của DIN-SQL là tách riêng liên kết schema, chọn nhánh, sinh và kiểm tra SQL.
 
-**[Bấm trên UI]** Chọn **Codex MCP SQL** → **Tìm bảng / cột** — stage `search_objects` → mở input rồi output schema.
+## 5. Từ 1:40 đến 2:50 — MAC-SQL
 
-> Codex dùng công cụ để kiểm tra dữ liệu. Search objects nhận tham số tìm kiếm, trả về schema bảng và cột thực tế để agent viết SQL.
+### 5.1. Bước một: Selector lựa chọn schema
 
-**[Bấm trên UI]** Chọn **Thử SQL qua MCP** — stage `execute_sql` → mở input SQL → output có giá trị **6**.
+**Thao tác:** Chọn MAC-SQL, bấm Selector · trạng thái. Mở Input / prompt rồi Output / SQL / kết quả.
 
-> Execute SQL nhận SQL cần thử và trả dữ liệu từ SQLite, ở đây là sáu. Phản hồi công cụ giúp agent kiểm tra và điều chỉnh khi có lỗi.
+**Chỉ trên màn hình:** Câu hỏi và database ở input; `pruned: false` và `send_to: Decomposer` ở output.
 
-**[Bấm trên UI]** Chọn **SQL cuối** → mở output.
+**Lời nói:**
 
-> Agent trả SQL cuối sau tương tác. App vẫn thực thi và đánh giá SQL đó theo cơ chế chung như các phương pháp khác.
+> Tiếp theo là MAC-SQL. Bước một là Selector. Input là trạng thái chứa câu hỏi và thông tin database. Output cho thấy schema được giữ nguyên và chuyển sang Decomposer. Bước này quyết định có cần thu gọn schema trước khi sinh SQL hay không.
 
-## 5:30–6:15 — Giải thích CM, EM, EX, VES
+### 5.2. Bước hai: Decomposer sinh SQL
 
-**[Bấm trên UI]** Chuyển lại **DIN-SQL** → **Result** → **Tính CM / EM / EX / VES**. Nếu đã có kết quả thì không bấm **Đo lại**. Chờ số hiện rồi mới diễn giải. Chỉ thẻ CM và các hàng SELECT, WHERE; nếu đủ thời gian, mở **Chi tiết CM theo thành phần SQL**. Không đọc hết bảng.
+**Thao tác:** Bấm Decomposer · gọi LLM; mở prompt input rồi SQL output. Sau đó bấm Decomposer · trạng thái, chỉ `qa_pairs` và `send_to: Refiner` nếu còn thời gian.
 
-> Em quay lại DIN-SQL để xem bốn độ đo. CM kiểm tra từng thành phần: SELECT có F1 bằng một; dấu gạch là phần cả hai truy vấn không dùng. EM xét cấu trúc toàn câu theo Spider; EX xét kết quả thực thi. Ở đây cả hai bằng một. VES so tốc độ SQL dự đoán với SQL đáp án khi kết quả hợp lệ, không gồm thời gian mô hình. Đây là điểm của một câu; VES có thể dao động giữa các lần đo.
+**Chỉ trên màn hình:** `SELECT COUNT(*) FROM singer;`.
 
-**[Chỉ trên UI khi nói]** CM → SELECT **1.00**, WHERE **—**; EM **1**; EX **1**; cuối cùng chỉ số VES đang hiển thị, không đọc số đã chuẩn bị sẵn. Dùng điểm của **DIN-SQL** để khớp lời thoại; không đọc “EM=1” nếu còn đang đứng ở Codex hoặc phương pháp khác.
+**Lời nói:**
 
-## 6:15–6:30 — Chốt kết quả
+> Bước hai là Decomposer. Input là prompt chứa câu hỏi và schema đã chuẩn bị. Output là SQL đếm ca sĩ. SQL được đưa vào trạng thái để chuyển sang Refiner. Câu này đơn giản nên agent giải trực tiếp, không cần tách nhiều câu hỏi con.
 
-**[Bấm trên UI]** Giữ màn hình Result và bốn độ đo, không mở phiên mới.
+### 5.3. Bước ba: Refiner kiểm tra và sửa khi cần
 
-> Bốn phương pháp có thể ra cùng kết quả nhưng đi qua các bước khác nhau. Trace giúp kiểm tra input và output; bốn độ đo cho xem thành phần, cấu trúc, kết quả và tốc độ SQL. Dạ, em xin kết thúc phần demo.
+**Thao tác:** Bấm Refiner · trạng thái; mở input chứa SQL rồi output.
 
-## Cách rút xuống khoảng 5 phút
+**Chỉ trên màn hình:** `pred`, `fixed: false`, `try_times: 1` và `send_to: System`.
 
-Tập theo phân bổ: **30 giây mở đầu + 2 phút DIN-SQL + 30 giây MAC-SQL + 35 giây DAIL-SQL + 35 giây Codex + 40 giây độ đo + 10 giây kết luận = 5 phút**.
+**Lời nói:**
 
-Giữ thao tác chỉ input/output, rút lời thoại như sau:
+> Bước ba là Refiner. Input là trạng thái có SQL vừa sinh và database. Agent kiểm tra bằng thực thi; output là SQL sau kiểm tra và trạng thái chuyển về hệ thống. Ở đây không cần sửa nên không có thêm lần gọi LLM sửa lỗi.
 
-- Mở đầu: “Em demo câu đếm ca sĩ trên concert singer bằng trace một phiên chạy thật đã lưu, cùng đầu vào cho bốn phương pháp.”
-- DIN-SQL: bỏ câu so sánh nhãn phân loại với bộ lọc Spider; mỗi node chỉ nói một câu về input, output và mục đích.
-- MAC-SQL: “Selector nhận câu hỏi/schema và chuyển sang Decomposer; Decomposer sinh SQL; Refiner kiểm tra và phiên này không cần sửa.” Vẫn chỉ dữ liệu ở ba node.
-- DAIL-SQL: không mở rộng ví dụ. Chỉ danh sách, prompt và SQL hai lượt: “Lượt một chọn ví dụ để sinh SQL sơ bộ; lượt hai dùng thêm SQL sơ bộ để chọn lại ví dụ và sinh SQL cuối.”
-- Codex: “Search objects trả schema thực tế; execute SQL nhận SQL và trả dữ liệu để agent kiểm tra.”
-- Bốn độ đo: vẫn chuyển lại **DIN-SQL → Result** và nói đủ: “CM xét từng phần SQL, EM xét cấu trúc toàn câu, EX xét kết quả, VES xét tốc độ SQL khi kết quả hợp lệ. SELECT F1, EM, EX ở đây đều bằng một; dấu gạch là phần không dùng. Đây là điểm một câu, không phải toàn bộ tập dữ liệu.” Không cần mở bảng chi tiết CM.
-- Kết thúc: “Trace cho xem input/output; bốn độ đo giúp đánh giá SQL từ nhiều góc độ. Dạ, em xin kết thúc.”
+### 5.4. Câu chuyển sang phương pháp tiếp theo
 
-Nếu có đủ 7 phút, giữ bản chính 6 phút 30 giây và dành **30 giây** còn lại cho một câu hỏi ngắn hoặc mở chi tiết CM; không khởi động thêm phiên khó.
+**Thao tác:** Chuyển tab DAIL-SQL. Không mở lại các bước thực thi chung nếu sắp hết thời gian.
 
-## Nếu có sự cố trong lúc nói
+**Lời nói:**
 
-**API chậm khi chạy trực tiếp:**
+> Điểm chính của MAC-SQL là phân vai lựa chọn schema, sinh SQL và kiểm tra, rồi chuyển trạng thái giữa các agent.
 
-> “Dịch vụ đang phản hồi chậm. Em chuyển sang trace của phiên chạy thật đã lưu để trình bày tiếp input và output từng bước.”
+## 6. Từ 2:50 đến 4:00 — DAIL-SQL
 
-**[Bấm trên UI]** Chọn phiên dự phòng trong lịch sử. Không đọc lại từ đầu; tiếp tục ở phương pháp/bước đang giải thích.
+### 6.1. Bước một: Chọn ví dụ lượt đầu
 
-**Output khác lời thoại đã tập:**
+**Thao tác:** Chọn DAIL-SQL, bấm Lượt 1 · Chọn ví dụ. Mở input ghi script/tham số; mở output và một ví dụ đếm đối tượng.
 
-> “Output của lần chạy này có khác phiên em đã chuẩn bị. Em sẽ giải thích theo bản ghi đang hiển thị.”
+**Chỉ trên màn hình:** Số ví dụ là 9; ví dụ “How many aircrafts do we have?” có SQL đếm máy bay. Prompt ghép nằm ở output lựa chọn, không phải toàn bộ nội dung của input script.
 
-**[Bấm trên UI]** Mở output gốc nếu cần. Nếu bước chưa xong hoặc không có input riêng, nói đúng trạng thái trên màn hình, không đọc kết quả dự kiến như thể đã xuất hiện.
+**Lời nói:**
 
-**Điểm chưa tính xong hoặc báo N/A:**
+> Tiếp theo là DAIL-SQL. Bước một chọn ví dụ. Input ghi tham số lựa chọn; output là danh sách ví dụ câu hỏi–SQL và prompt ghép. Ví dụ đếm máy bay giúp minh họa cách viết SQL đếm ca sĩ.
 
-> “Em đã đo trước trên cùng phiên và có ảnh kết quả lưu lại. Em dùng ảnh đó để giải thích tiếp; N/A trên màn hình hiện tại là chưa tính được, không phải điểm không.”
+### 6.2. Bước hai: Sinh SQL sơ bộ
 
-**[Thao tác]** Mở ảnh điểm đã chuẩn bị, nói rõ là kết quả đo trước. Nếu chưa có ảnh thì chỉ giải thích ý nghĩa độ đo và thông báo đang chờ; không đọc điểm dự kiến như số đã đo.
+**Thao tác:** Bấm Lượt 1 · Sinh SQL sơ bộ; mở Input / prompt rồi Output / SQL / kết quả. Nếu prompt được lấy từ node phản hồi LLM con, chỉ dòng chú thích nguồn prompt.
 
-## Ghi nhớ để trả lời khi cô hỏi — không đọc hết trong phần chính
+**Chỉ trên màn hình:** `SELECT COUNT(*) FROM singer;`.
 
-- **CM** giữ F1 theo từng thành phần, không gộp thành điểm trung bình. Dấu **—** là cả hai truy vấn không có thành phần; thiếu WHERE so với đáp án thì là **0**, không phải —.
-- **EM** không so chuỗi từng ký tự. Bộ chấm Spider có bước xử lý cấu trúc và có giới hạn parser; giá trị literal có thể không được xét như khi thực thi.
-- **EX** kiểm tra dữ liệu trả về. Vì vậy SQL khác cấu trúc có thể EX=1 dù EM=0.
-- **CM/EM khi lỗi parser prediction:** evaluator chấm AST dự đoán rỗng và UI ghi rõ lý do. Trong phiên Codex có alias cột, có thể EX=1 nhưng EM=0; không kết luận SQL chạy sai chỉ từ EM.
-- **VES** không phải số mili giây, tỷ lệ đúng hay tổng thời gian sinh SQL. Điểm có thể hơn 100 và dao động theo tải máy. UI đo 10 cặp, lọc tỷ số ngoại lệ 3σ rồi tính `100 × sqrt(mean(t_gold / t_pred))`; không khớp theo điều kiện hợp lệ của VES hoặc prediction lỗi thì VES=0.
-- **EX và VES có quy tắc hợp lệ khác nhau:** VES dùng so tập hợp của BIRD; EX của dự án còn xét dòng trùng, thứ tự khi cần và hoán vị cột.
-- **Điểm đang trình bày là của một câu trên SQL gốc**, không phải điểm trung bình toàn bộ benchmark hoặc EM/CM sau chuẩn hóa trong báo cáo.
+**Lời nói:**
+
+> Bước hai sinh SQL sơ bộ. Input là prompt chứa câu hỏi, schema và các ví dụ đã chọn. LLM trả output là SQL đếm ca sĩ, làm dự đoán ban đầu cho lượt tiếp theo.
+
+### 6.3. Bước ba: Chọn lại ví dụ
+
+**Thao tác:** Bấm Lượt 2 · Chọn lại ví dụ; mở input tham số rồi output danh sách và prompt.
+
+**Chỉ trên màn hình:** Tham số lượt hai dùng kết quả SQL sơ bộ; danh sách ví dụ trong phiên này có thể giống lượt đầu.
+
+**Lời nói:**
+
+> Bước ba chọn lại ví dụ. Input ghi cấu hình lượt hai, sử dụng thêm SQL sơ bộ. Output là ví dụ và prompt cho lượt sau. SQL sơ bộ cung cấp thêm thông tin về cấu trúc truy vấn cần tạo.
+
+### 6.4. Bước bốn: Sinh SQL cuối
+
+**Thao tác:** Bấm Lượt 2 · Sinh SQL cuối; mở input/prompt rồi output SQL. Không mở thêm node tiền xử lý trong lịch trình chính.
+
+**Lời nói:**
+
+> Bước bốn sinh SQL cuối. Input là prompt lượt hai; output vẫn là SQL đếm ca sĩ trong ví dụ này. Điểm chính của DAIL-SQL là chọn ví dụ qua hai lượt; ví dụ từ database khác chỉ hỗ trợ prompt, không phải truy vấn nhiều database.
+
+## 7. Từ 4:00 đến 5:10 — Codex MCP SQL
+
+### 7.1. Bước một: Nhận yêu cầu của phiên agent
+
+**Thao tác:** Chọn Codex MCP SQL, bấm Phiên Codex và mở Input / prompt. Chỉ yêu cầu cùng hướng dẫn dùng công cụ. Output của phiên chỉ xem ở bước cuối bên dưới.
+
+**Lời nói:**
+
+> Cuối cùng là Codex MCP SQL. Bước một, agent nhận input là câu hỏi và hướng dẫn dùng công cụ. Phiên này bao quanh các lần gọi công cụ; output cuối của phiên là SQL sau quá trình tương tác.
+
+### 7.2. Bước hai: Tìm schema bằng công cụ
+
+**Thao tác:** Bấm Tìm bảng / cột, tên công cụ là search_objects. Mở input tham số rồi output schema.
+
+**Chỉ trên màn hình:** Từ khóa `singer`; kết quả có `singer` và `singer_in_concert`.
+
+**Lời nói:**
+
+> Bước hai tìm schema. Input công cụ là từ khóa singer; output là thông tin bảng và cột thực tế. Agent dùng schema này để viết SQL, không bắt buộc dùng mọi bảng tìm thấy.
+
+### 7.3. Bước ba: Thử SQL qua MCP
+
+**Thao tác:** Bấm Thử SQL qua MCP, tên công cụ là execute_sql. Mở input SQL rồi output bảng dữ liệu.
+
+**Chỉ trên màn hình:** `SELECT COUNT(*) AS singer_count FROM singer;`. Output có một dòng chứa giá trị 6.
+
+**Lời nói:**
+
+> Bước ba thử SQL. Input là câu SQL cần kiểm tra; output là dữ liệu SQLite trả về, ở đây là sáu. Phản hồi công cụ giúp agent kiểm tra câu lệnh và điều chỉnh nếu có lỗi.
+
+### 7.4. Bước bốn: Trả SQL cuối
+
+**Thao tác:** Trở lại Phiên Codex, mở output có `final_response`; nếu đủ thời gian, chỉ SQL cuối. Node SQL cuối chỉ ghi kết quả, không có input riêng thì không diễn giải như một lần gọi LLM mới.
+
+**Lời nói:**
+
+> Bước bốn hoàn tất phiên và trả output là SQL cuối. Điểm chính là agent khám phá schema và thử SQL bằng công cụ. App vẫn thực thi và đánh giá SQL cuối để so sánh chung với các phương pháp khác.
+
+## 8. Từ 5:10 đến 6:10 — Bốn độ đo trên Result
+
+### 8.1. CM và EM
+
+**Thao tác:** Chuyển lại DIN-SQL, chọn Result. Bấm Tính CM / EM / EX / VES nếu chưa có điểm; không bấm Đo lại khi đã có kết quả. Chỉ số sau khi chúng xuất hiện.
+
+**Chỉ trên màn hình:** CM có SELECT F1 bằng 1.00, WHERE không dùng hiện —. Nếu cần, mở Chi tiết CM theo thành phần SQL để chỉ một hàng, không đọc cả bảng.
+
+**Lời nói:**
+
+> Em quay lại DIN-SQL để minh họa bốn độ đo trên cùng câu SQL. CM xét từng thành phần: SELECT có F1 bằng một; dấu gạch là phần cả hai truy vấn không dùng. CM được giữ theo thành phần, không gộp tùy ý thành điểm trung bình. EM xét cấu trúc toàn câu theo Spider, ở đây bằng một.
+
+### 8.2. EX và VES
+
+**Thao tác:** Chỉ thẻ EX, bảng kết quả 6 và thẻ VES. Đọc VES theo số hiện tại nếu muốn minh họa, không dùng số đã học thuộc.
+
+**Lời nói:**
+
+> EX xét kết quả thực thi có khớp đáp án không, ở đây bằng một. VES xét hiệu suất SQL so với SQL đáp án khi kết quả hợp lệ, không tính thời gian mô hình sinh SQL. Điểm VES có thể dao động và lớn hơn một trăm. Các điểm đang xem thuộc một câu, không phải điểm toàn bộ tập dữ liệu.
+
+## 9. Từ 6:10 đến 6:30 — Kết thúc
+
+**Thao tác:** Giữ màn hình Result; không mở thêm phiên hoặc chạy câu hỏi mới.
+
+**Lời nói:**
+
+> Qua bốn phương pháp, cùng đầu vào có thể cho cùng kết quả nhưng luồng xử lý khác nhau. Trace cho phép kiểm tra input, output và sự chuyển tiếp; CM, EM, EX, VES giúp xem xét thành phần, cấu trúc, kết quả và hiệu suất. Một câu demo chưa đủ để xếp hạng phương pháp. Dạ, em xin kết thúc.
+
+## 10. Bản rút còn 5 phút
+
+Dành 20 giây mở đầu, 50 giây cho mỗi phương pháp, 60 giây cho bốn độ đo và 20 giây kết luận. Tổng là 5 phút. Giữ cả bốn phương pháp; rút lời giải thích, không bỏ toàn bộ phần input/output của một phương pháp.
+
+Ở mỗi phương pháp, vẫn bấm các node chính nhưng chỉ đọc đoạn ngắn tương ứng dưới đây. Phần độ đo giữ bản đầy đủ ở mục 8.
+
+**DIN-SQL:**
+
+> Prompt liên kết schema chỉ ra bảng singer. Prompt phân loại trả EASY để chọn nhánh. Prompt sinh SQL trả câu đếm ca sĩ. Bước rà soát giữ nguyên SQL; thực thi cuối trả sáu. Như vậy từng bước có input, output và vai trò riêng.
+
+**MAC-SQL:**
+
+> Bước một, Selector nhận trạng thái câu hỏi/schema và chuyển sang Decomposer. Bước hai, Decomposer nhận prompt và trả SQL. Bước ba, Refiner nhận SQL để kiểm tra bằng thực thi; output giữ nguyên SQL trong phiên này.
+
+**DAIL-SQL:**
+
+> Bước một chọn ví dụ, output là ví dụ và prompt. Bước hai nhận prompt để sinh SQL sơ bộ. Bước ba dùng thêm SQL sơ bộ để chọn lại ví dụ. Bước bốn nhận prompt mới và trả SQL cuối.
+
+**Codex MCP SQL:**
+
+> Bước một agent nhận câu hỏi và hướng dẫn. Bước hai, công cụ nhận từ khóa và trả schema. Bước ba, công cụ nhận SQL để thử và trả dữ liệu. Bước bốn, phiên agent hoàn tất và trả SQL cuối.
+
+Nếu có đủ 7 phút, dùng bản chính 6 phút 30 giây và dành 30 giây còn lại cho một câu hỏi. Không mở thêm một lượt chạy khó.
+
+## 11. Lời chuyển khi có sự cố
+
+### 11.1. API chậm khi chạy live
+
+**Thao tác:** Mở phiên lịch sử đã chuẩn bị; tiếp tục ở phương pháp đang trình bày, không nói lại từ đầu.
+
+**Lời nói:**
+
+> Dịch vụ đang phản hồi chậm. Em chuyển sang trace một phiên chạy thật đã lưu để tiếp tục chỉ input và output của các bước.
+
+### 11.2. Điểm chưa hiện hoặc báo N/A
+
+**Thao tác:** Nếu đã chụp ảnh điểm, mở ảnh và nói rõ đó là kết quả đo trước. Nếu chưa có ảnh, chỉ giải thích ý nghĩa và trạng thái chờ, không đọc số dự kiến.
+
+**Lời nói khi có ảnh:**
+
+> Em dùng ảnh điểm đã đo trước trên cùng phiên để giải thích tiếp. N/A hiện tại là chưa tính được, không phải điểm không.
+
+### 11.3. Output khác lời đã học
+
+**Thao tác:** Đọc output thực tế, mở output gốc khi cần. Node chưa chạy hoặc không ghi input riêng thì chỉ đúng thông báo trên UI.
+
+**Lời nói:**
+
+> Output phiên này khác bản em đã chuẩn bị. Em sẽ giải thích theo dữ liệu đang hiển thị, thay vì đọc lại một kết quả chưa xuất hiện.
+
+### 11.4. EX bằng 1 nhưng CM hoặc EM thấp
+
+**Thao tác:** Mở Chi tiết tính điểm. Nếu là lỗi parser, chỉ đúng lý do; nếu SQL khác cấu trúc thì đối chiếu SQL dự đoán và tham chiếu.
+
+**Lời nói:**
+
+> Hai câu SQL có thể khác cấu trúc nhưng cùng dữ liệu. Bộ chấm Spider cũng có giới hạn cú pháp; lỗi parser được ghi riêng. Vì vậy em xem cả cấu trúc lẫn kết quả, không kết luận SQL chạy sai chỉ từ EM.

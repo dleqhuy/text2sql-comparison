@@ -1,0 +1,41 @@
+\chapter*{Danh mục từ viết tắt -- Thuật ngữ chuyên ngành}
+\addcontentsline{toc}{chapter}{Danh mục từ viết tắt -- Thuật ngữ chuyên ngành}
+\begingroup
+\footnotesize
+\setlength{\TableWidth}{\dimexpr\textwidth-12pt\relax}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.0600\TableWidth}@{\hspace{6pt}}>{\raggedright\arraybackslash}p{0.2500\TableWidth}@{\hspace{6pt}}>{\raggedright\arraybackslash}p{0.6900\TableWidth}@{}}
+\toprule
+\textbf{STT} & \textbf{Thuật ngữ / Từ viết tắt} & \textbf{Ý nghĩa trong ngữ cảnh LLM-based Text-to-SQL} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{STT} & \textbf{Thuật ngữ / Từ viết tắt} & \textbf{Ý nghĩa trong ngữ cảnh LLM-based Text-to-SQL} \\
+\midrule
+\endhead
+\midrule
+\endfoot
+\bottomrule
+\endlastfoot
+1 & \textbf{NLIDB} & Natural Language Interface to Database: Giao diện truy vấn cơ sở dữ liệu bằng ngôn ngữ tự nhiên. \\
+2 & \textbf{Text-to-SQL} & Tác vụ tự động ánh xạ câu hỏi ngôn ngữ tự nhiên (NL question) thành câu truy vấn SQL thực thi được trên CSDL quan hệ. \\
+3 & \textbf{LLM / PLM} & Large Language Model (Mô hình ngôn ngữ lớn: GPT-4, LLaMA, Qwen) / Pre-trained Language Model (BERT, RoBERTa, TaBERT). \\
+4 & \textbf{Schema} & Lược đồ cơ sở dữ liệu, định nghĩa cấu trúc các bảng (tables), cột (columns), kiểu dữ liệu và ràng buộc khóa chính/khóa ngoại. \\
+5 & \textbf{Schema Linking} & Kỹ thuật liên kết các thực thể/từ khóa trong câu hỏi ngôn ngữ tự nhiên với đúng tên bảng, tên cột và giá trị trong database schema. \\
+6 & \textbf{Pipeline} & Chuỗi quy trình xử lý gồm nhiều giai đoạn/mô-đun nối tiếp nhau (giữ nguyên thuật ngữ tiếng Anh theo chuẩn học thuật). \\
+7 & \textbf{ICL} & In-Context Learning: Mô hình học trong ngữ cảnh (đóng băng tham số \ensuremath{\theta}, điều hướng sinh SQL qua chỉ dẫn và các mẫu minh họa trong prompt). \\
+8 & \textbf{FT / SFT} & Fine-Tuning / Supervised Fine-Tuning: Tinh chỉnh có giám sát bộ tham số \ensuremath{\theta} của LLM mã nguồn mở trên tập dữ liệu đặc thù. \\
+9 & \textbf{Zero-shot / Few-shot} & Chiến lược suy luận không dùng mẫu minh họa (zero-shot) hoặc cung cấp k cặp mẫu (câu hỏi - SQL) làm ví dụ dẫn đường (few-shot / k-shot). \\
+10 & \textbf{Prompt Engineering} & Thiết kế và tối ưu prompt đầu vào để điều hướng LLM sinh SQL; Mục IV-A \cite{ref1} dùng như tên gọi khác của ICL. \\
+11 & \textbf{CoT} & Chain-of-Thought: Kỹ thuật suy luận chuỗi tư duy, hướng dẫn LLM sinh các bước lập luận trung gian trước khi xuất truy vấn SQL cuối cùng. \\
+12 & \textbf{Self-Consistency} & Cơ chế lấy mẫu nhiều đường suy luận độc lập và bầu chọn đa số (majority voting) để chọn câu truy vấn SQL nhất quán nhất. \\
+13 & \textbf{Self-Correction} & Cơ chế tự kiểm tra và tự sửa lỗi cú pháp/logic của câu truy vấn SQL dự đoán dựa trên prompt hoặc phản hồi thực thi từ CSDL. \\
+14 & \textbf{Multi-Agent} & Kiến trúc nhiều agent chuyên biệt (ví dụ Selector, Decomposer, Refiner của MAC-SQL) phối hợp giải quyết các tác vụ con. \\
+15 & \textbf{Hallucination} & Hiện tượng LLM sinh thông tin sai lệch, ví dụ bịa tên bảng/cột không có trong schema hoặc sai với dữ liệu thực tế. \\
+16 & \textbf{Token / Context Window} & Đơn vị từ vựng cơ bản mà LLM xử lý / Cửa sổ ngữ cảnh giới hạn tổng số lượng token đầu vào và đầu ra tối đa của mô hình. \\
+17 & \textbf{Benchmark / Ground Truth} & Bộ dữ liệu chuẩn đối sánh hiệu năng (Spider, BIRD, Spider 2.0) / Truy vấn SQL chuẩn (gold SQL) dùng làm đáp án đối chiếu. \\
+18 & \textbf{Cross-Domain / OOD} & Khả năng khái quát hóa liên miền sang các CSDL mới chưa từng xuất hiện khi huấn luyện / Out-of-Distribution (ngoài phân phối). \\
+19 & \textbf{Beam Search / Backbone} & Thuật toán tìm kiếm chùm khi giải mã sinh chuỗi token / Kiến trúc mạng nơ-ron xương sống của mô hình (Transformer decoder-only). \\
+20 & \textbf{CM / EM / EX / VES} & Bốn độ đo của Mục III-B \cite{ref1}: Component Matching (CM), Exact Matching (EM), Execution Accuracy (EX) và Valid Efficiency Score (VES). \\
+\end{longtable}
+\endgroup
+

@@ -23,6 +23,8 @@ REPOS = {
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("--count", type=int, help="First N dev examples; default: all")
+    result.add_argument("--question", help="Run one custom question (requires --db-id)")
+    result.add_argument("--db-id", help="Spider database for --question")
     result.add_argument(
         "--methods", nargs="+", choices=METHODS, default=list(DEFAULT_METHODS)
     )
@@ -456,7 +458,13 @@ class Comparison:
 def main():
     cli = parser()
     try:
-        Comparison(cli.parse_args()).run()
+        args = cli.parse_args()
+        if args.question is not None or args.db_id is not None:
+            from custom_question import run
+
+            run(args)
+        else:
+            Comparison(args).run()
     except (ValueError, FileExistsError, FileNotFoundError, RuntimeError) as error:
         cli.exit(1, f"{error}\n")
 

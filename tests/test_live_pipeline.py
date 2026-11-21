@@ -145,6 +145,18 @@ class LivePipelineTests(unittest.TestCase):
 
     def test_custom_input_is_never_scored_against_gold(self):
         path = self.run_fake()
+        execution_input = next(
+            e["input"]
+            for e in server.events(path)
+            if e["stage"] == "SQLite execution" and e["kind"] == "start"
+        )
+        self.assertEqual(
+            execution_input,
+            {
+                "sql": "SELECT COUNT(*) FROM items",
+                "gold_sql": None,
+            },
+        )
         output = next(
             e["output"]
             for e in server.events(path)
@@ -157,6 +169,18 @@ class LivePipelineTests(unittest.TestCase):
 
     def test_selected_example_is_scored_with_original_ex_rules(self):
         path = self.run_fake(index=0)
+        execution_input = next(
+            e["input"]
+            for e in server.events(path)
+            if e["stage"] == "SQLite execution" and e["kind"] == "start"
+        )
+        self.assertEqual(
+            execution_input,
+            {
+                "sql": "SELECT COUNT(*) FROM items",
+                "gold_sql": "SELECT COUNT(*) FROM items",
+            },
+        )
         output = next(
             e["output"]
             for e in server.events(path)

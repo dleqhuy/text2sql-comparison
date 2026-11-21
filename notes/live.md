@@ -70,24 +70,38 @@ Giao diện cũ được giữ trong `.local_archive/live-before-fastapi/`; thư
 `scripts/live_server.py` là entry point tương thích; HTTP server cũ đã được
 thay bằng FastAPI. Không có hai backend chạy song song.
 
-## Cách dùng
+## Cách dùng và chuẩn bị demo
 
-1. Chọn database và câu hỏi Spider hoặc sửa câu hỏi để chạy input riêng.
-2. Chọn DIN-SQL, MAC-SQL, DAIL-SQL, Codex MCP SQL rồi bấm **Chạy pipeline**. Các phương
-   pháp chạy lần lượt trên cùng input.
-3. Chọn tab phương pháp để xem sơ đồ React Flow chia lane. Bấm từng nút để xem
-   **Input / prompt** và **Output / SQL / kết quả**; trên màn hình rộng inspector ở
-   bên phải, màn hình hẹp tự cuộn đến phần chi tiết và có nút **Sơ đồ** để quay lại.
-   DAIL hiển thị ví dụ train được chọn ở từng lượt; sinh SQL liên kết với prompt
-   của lời gọi LLM tương ứng. Kết quả truy vấn được hiển thị dạng bảng.
-   Nút chưa có trace hiện mờ và không có dữ liệu giả. Các lần retry/Refiner/tool
-   calls có nút riêng; bấm **Tập trung bước**, dùng +/−, minimap hoặc kéo để xem.
-   DIN chỉ tô nhãn nhánh khi response có `Label:` rõ ràng. Hình thoi là nút chọn
-   nhánh có liên kết về bản ghi phân loại, không phải lời gọi LLM bổ sung.
-4. **Schema** hiển thị DDL thật; **Result** hiển thị SQL cuối và tối đa 100 dòng.
-5. **Lịch sử chạy** và **Phát lại** đọc trace đã lưu, không gọi model lại.
-6. **JSON** xuất các sự kiện; nút vuông hủy runner. Đóng tab không
-   hủy job; mở lại dashboard rồi chọn phiên đó từ lịch sử.
+Tài liệu cho người trình bày: [kịch bản một người, 5–7 phút](demo-script.md) và
+[lời thoại liền mạch kèm thao tác UI](demo-talk-track.md). Phần dưới là hướng dẫn vận hành.
+
+1. Mở **Lược đồ CSDL**, chọn database để xem bảng, cột, PK/FK và đường nối quan hệ.
+   Có thể kéo bảng, zoom hoặc mở **Xem DDL gốc**. Desktop dùng menu trái;
+   khi sidebar ẩn trên màn hình nhỏ, dùng thanh chuyển màn hình phía trên.
+2. Về **Pipeline explorer**. Trong **Database & câu hỏi**, chọn database,
+   dùng bộ lọc **Độ khó** để chọn câu hỏi mẫu hoặc nhập câu riêng. Mỗi lần chạy
+   nhận một database và một câu hỏi; có thể JOIN nhiều bảng trong database đó.
+   Độ khó Dễ/Trung bình/Khó/Rất khó lấy từ SQL đáp án theo evaluator Spider,
+   khác nhãn điều hướng EASY/NON-NESTED/NESTED do DIN-SQL dự đoán.
+3. Chọn phương pháp rồi bấm **Chạy pipeline**. Các phương pháp chạy lần lượt
+   trên cùng đầu vào. Gold không được dùng để sinh SQL trả lời câu hỏi.
+4. Chọn tab phương pháp và bấm node trên sơ đồ. **Trace** cho xem **Input / prompt**
+   và **Output / SQL / kết quả** của bước đang chọn; **Result** cho xem SQL/kết quả
+   cuối của phương pháp. Schema/DDL chỉ nằm ở màn hình **Lược đồ CSDL**;
+   inspector không có nút Schema hay nút Sơ đồ để cuộn lại.
+5. Trong **Result**, với phiên đã kết thúc và câu hỏi có SQL tham chiếu, bấm
+   **Tính CM / EM / EX / VES**. Xem F1 từng phần ở thẻ CM hoặc mở bảng chi tiết.
+   Có thể tính trên lịch sử, không cần gọi lại mô hình. Câu tự nhập không có điểm tham chiếu.
+6. **Lịch sử chạy** và **Phát lại** đọc trace đã lưu; **JSON** tải sự kiện.
+   Nút vuông hủy runner. Đóng tab không hủy job; mở lại dashboard rồi chọn phiên đó.
+
+Inspector nằm bên phải khi đủ rộng; trên màn hình hẹp, chọn node sẽ cuộn tới
+chi tiết. Dùng cuộn trang để quay về sơ đồ. Các lần retry/Refiner/tool calls có
+bản ghi riêng; dùng **Tập trung bước**, +/−, minimap hoặc kéo để định vị.
+Node chưa có trace không có dữ liệu giả. DIN chỉ tô nhãn nhánh khi response có
+`Label:` rõ ràng; hình thoi dẫn về bản ghi phân loại, không phải lời gọi LLM mới.
+DAIL hiển thị ví dụ train và prompt từ lời gọi LLM tương ứng. Result hiển thị tối
+đa 100 dòng, còn đánh giá EX dùng toàn bộ kết quả.
 
 Lịch sử PostgreSQL là lịch sử chung của dashboard. Migration gỡ liên kết với
 tài khoản và giữ nguyên các run/trace cũ. Code giao diện/API tài khoản trước đây

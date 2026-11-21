@@ -163,6 +163,24 @@ class LiveDailTests(unittest.TestCase):
         ]
         self.assertEqual(len(selected), 2)
         self.assertEqual(selected[0]["output"]["examples"][0]["query"], "SELECT 7")
+        starts = {e["stage"]: e["input"] for e in events if e["kind"] == "start"}
+        self.assertEqual(
+            starts["Example selection · pass 1"]["question"], "Count items"
+        )
+        self.assertEqual(
+            starts["Example selection · pass 1"]["selector"], "EUCDISQUESTIONMASK"
+        )
+        self.assertEqual(
+            starts["Example selection · pass 2"]["preliminary_sql"], "SELECT 2"
+        )
+        self.assertEqual(starts["Example selection · pass 2"]["k_shot"], 9)
+        preprocessing = next(
+            e["output"]
+            for e in events
+            if e["stage"] == "Preprocessing" and e["kind"] == "finish"
+        )
+        self.assertEqual(preprocessing["target_count"], 1)
+        self.assertEqual(preprocessing["question_tokens"], ["Count", "items"])
         self.assertNotIn("gold-secret", json.dumps(events))
 
     def test_failure_is_recorded_and_instrumentation_restored(self):
@@ -180,6 +198,37 @@ if __name__ == "__main__":
 
 
 class RetryTests(unittest.TestCase):
+    def test_each_provider_attempt_is_observed_with_the_same_prompt(self):
+        from unittest.mock import Mock
+
+        chat = SimpleNamespace(
+            LLM=SimpleNamespace(TASK_COMPLETIONS=[]),
+            ask_chat=Mock(
+                side_effect=[RuntimeError("provider timeout"), {"response": "SELECT 1"}]
+            ),
+        )
+        events = []
+        with patch.object(live_dail.time, "sleep"):
+            response = live_dail.ask_bounded(
+                chat,
+                "model",
+                ["same prompt"],
+                0,
+                1,
+                observe=lambda kind, attempt, **payload: events.append(
+                    {"kind": kind, "attempt": attempt, **payload}
+                ),
+            )
+        self.assertEqual(
+            [(e["kind"], e["attempt"]) for e in events],
+            [("start", 1), ("error", 1), ("start", 2), ("finish", 2)],
+        )
+        self.assertEqual(response["response"], ["SELECT 1"])
+        self.assertEqual(events[1]["output"], "provider timeout")
+        self.assertEqual(
+            chat.ask_chat.call_args_list[0], chat.ask_chat.call_args_list[1]
+        )
+
     def test_provider_failure_stops_after_three_attempts(self):
         from unittest.mock import Mock
 

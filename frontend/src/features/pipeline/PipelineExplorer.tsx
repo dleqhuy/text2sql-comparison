@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { buildSteps, type Method, stepDetails } from "./flow-model"
+import { resolveStepDetail } from "./mac-model"
 import PipelineFlow from "./PipelineFlow"
 import SchemaDiagram from "./SchemaDiagram"
 import StepPayload from "./StepPayload"
@@ -134,6 +135,7 @@ export default function PipelineExplorer() {
     [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [selectedMethod, setSelectedMethod] = useState<Method>("din_sql"),
     [selectedStep, setSelectedStep] = useState<number | null>(null),
+    [selectedDetail, setSelectedDetail] = useState<string | null>(null),
     [tab, setTab] = useState("output"),
     [view, setView] = useState<"trace" | "results">("trace")
   const [difficulty, setDifficulty] = useState<Difficulty | "all">("all")
@@ -257,7 +259,10 @@ export default function PipelineExplorer() {
     selectedStep === null
       ? steps.length - 1
       : Math.min(selectedStep, steps.length - 1)
-  const step = steps[currentIndex]
+  const step = resolveStepDetail(steps[currentIndex], selectedDetail)
+  useEffect(() => {
+    setSelectedDetail(null)
+  }, [snapshot?.meta.id, selectedMethod])
   const sql = methodEvents.find((e) => e.kind === "result")?.output
   const execution = methodEvents.find(
     (e) => e.stage === "SQLite execution" && e.kind === "finish",
@@ -398,11 +403,27 @@ export default function PipelineExplorer() {
           view === "results"
             ? sql
             : step
-              ? tab === "input"
-                ? (stepDetails(step, steps).prompt ?? step.input)
-                : (stepDetails(step, steps).sql ??
-                  stepDetails(step, steps).response ??
-                  step.output)
+              ? step.stage.startsWith("Example selection") ||
+                (step.id.startsWith("codex_mcp-") &&
+                  ["Codex turn", "search_objects", "execute_sql"].includes(
+                    step.stage,
+                  ))
+                ? step[tab === "input" ? "input" : "output"]
+                : step.calls !== undefined
+                  ? {
+                      state: step[tab === "input" ? "input" : "output"],
+                      llm_calls: step.calls.map(
+                        (call) => call[tab === "input" ? "input" : "output"],
+                      ),
+                      executions: step.checks,
+                    }
+                  : tab === "input"
+                    ? (stepDetails(step, steps).executionInput ??
+                      stepDetails(step, steps).prompt ??
+                      step.input)
+                    : (stepDetails(step, steps).sql ??
+                      stepDetails(step, steps).response ??
+                      step.output)
               : undefined,
         ),
       )
@@ -984,10 +1005,16 @@ export default function PipelineExplorer() {
               steps={steps}
               selectedId={step?.id}
               runId={snapshot?.meta.id}
-              onSelect={(index) => {
+              onSelect={(index, detailId) => {
                 setSelectedStep(index)
+                setSelectedDetail(detailId ?? null)
                 setView("trace")
-                setTab(steps[index]?.output === undefined ? "input" : "output")
+                setTab(
+                  resolveStepDetail(steps[index], detailId ?? null)?.output ===
+                    undefined
+                    ? "input"
+                    : "output",
+                )
                 if (window.matchMedia("(max-width: 1299px)").matches) {
                   requestAnimationFrame(() =>
                     document

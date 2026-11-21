@@ -2,6 +2,10 @@ import { useMemo } from "react"
 import {
   Background,
   BackgroundVariant,
+  BaseEdge,
+  EdgeLabelRenderer,
+  getBezierPath,
+  getSmoothStepPath,
   Controls,
   Handle,
   MiniMap,
@@ -9,6 +13,7 @@ import {
   ReactFlow,
   useReactFlow,
   type NodeProps,
+  type EdgeProps,
 } from "@xyflow/react"
 import {
   Check,
@@ -19,9 +24,11 @@ import {
   TriangleAlert,
 } from "lucide-react"
 import type { Method, Step } from "./flow-model"
-import { createFlow, type Task, type Lane } from "./flow-graph"
+import { createFlow, type Task, type Lane, type Session } from "./flow-graph"
 import "@xyflow/react/dist/style.css"
 import "./flow.css"
+import { flowSemantics } from "./method-stages"
+import type { LabelPosition } from "./edge-labels"
 
 function LaneNode({ data }: NodeProps<Lane>) {
   return (
@@ -49,6 +56,7 @@ function TaskNode({ data, selected }: NodeProps<Task>) {
       <Handle type="target" position={Position.Top} id="top" />
       <Handle type="target" position={Position.Left} id="left" />
       <Handle type="target" position={Position.Right} id="right-in" />
+      <Handle type="target" position={Position.Bottom} id="bottom-in" />
       {data.gateway && (
         <svg
           className="flow-gateway-shape"
@@ -82,7 +90,9 @@ function TaskNode({ data, selected }: NodeProps<Task>) {
             ? "Nhánh prompt"
             : data.status === "planned"
               ? "Chưa có trace"
-              : `Lần ${data.attempt}`}
+              : data.llmAttempts
+                ? `LLM: ${data.llmAttempts} bản ghi`
+                : `Lần ${data.attempt}`}
         </span>
         <span>
           {data.elapsed !== undefined
@@ -102,7 +112,117 @@ function TaskNode({ data, selected }: NodeProps<Task>) {
     </div>
   )
 }
-const nodeTypes = { task: TaskNode, lane: LaneNode }
+function SessionNode({ data }: NodeProps<Session>) {
+  return (
+    <div
+      className={`flow-session ${data.status} ${data.compact ? "compact" : ""} ${data.supplemental ? "supplemental" : ""}`}
+      data-testid={data.supplemental ? "evaluation-frame" : "agent-session"}
+    >
+      <strong>{data.title}</strong>
+      <p>{data.subtitle}</p>
+      <small>
+        {data.footer ??
+          "Hai chiều của vòng lặp: yêu cầu → tool · kết quả / lỗi → agent. # là thứ tự gọi MCP trong trace."}
+      </small>
+    </div>
+  )
+}
+const nodeTypes = { task: TaskNode, lane: LaneNode, session: SessionNode }
+
+function ProviderRetryEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  markerEnd,
+  style,
+  label,
+}: EdgeProps) {
+  const path = `M ${sourceX} ${sourceY} C ${sourceX - 90} ${sourceY} ${sourceX - 90} ${targetY - 55} ${targetX} ${targetY - 55} C ${targetX + 35} ${targetY - 55} ${targetX} ${targetY - 15} ${targetX} ${targetY}`
+  return (
+    <>
+      <BaseEdge id={id} path={path} markerEnd={markerEnd} style={style} />
+      <EdgeLabelRenderer>
+        <div
+          className="flow-retry-label nodrag nopan"
+          data-testid="provider-retry-label"
+          style={{
+            transform: `translate(-50%, -50%) translate(${targetX - 15}px, ${targetY - 40}px)`,
+          }}
+        >
+          {label}
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  )
+}
+function PositionedLabelEdge(props: EdgeProps) {
+  const {
+    id,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    markerEnd,
+    style,
+    label,
+    data,
+  } = props
+  const args = {
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+  }
+  const [path, anchorX, anchorY] =
+    data?.pathType === "default" ? getBezierPath(args) : getSmoothStepPath(args)
+  const placement = data?.labelPosition as LabelPosition | undefined
+  const center = placement
+    ? {
+        x: placement.x + placement.width / 2,
+        y: placement.y + placement.height / 2,
+      }
+    : undefined
+  return (
+    <>
+      <BaseEdge id={id} path={path} markerEnd={markerEnd} style={style} />
+      {center && Math.hypot(center.x - anchorX, center.y - anchorY) > 24 && (
+        <path
+          d={`M ${anchorX} ${anchorY} L ${center.x} ${center.y}`}
+          fill="none"
+          stroke={String(style?.stroke ?? "#857160")}
+          strokeWidth={1}
+          strokeDasharray="3 3"
+        />
+      )}
+      {placement && (
+        <EdgeLabelRenderer>
+          <div
+            className="flow-edge-label nodrag nopan"
+            data-testid="flow-edge-label"
+            data-edge-id={id}
+            style={{
+              transform: `translate(${placement.x}px, ${placement.y}px)`,
+              width: placement.width,
+              color: String(style?.stroke ?? "#736254"),
+            }}
+          >
+            {label}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  )
+}
+const edgeTypes = {
+  providerRetry: ProviderRetryEdge,
+  positionedLabel: PositionedLabelEdge,
+}
 
 function FocusStep({ id }: { id?: string }) {
   const flow = useReactFlow()
@@ -131,7 +251,7 @@ type Props = {
   method: Method
   steps: Step[]
   selectedId?: string
-  onSelect: (index: number) => void
+  onSelect: (index: number, detailId?: string) => void
   runId?: string
 }
 export default function PipelineFlow({
@@ -158,6 +278,12 @@ export default function PipelineFlow({
           {steps.filter((s) => s.status === "done").length} hoàn tất
         </span>
       </div>
+      {flowSemantics[method] && (
+        <aside className="flow-semantics" data-testid="flow-semantics">
+          <strong>{flowSemantics[method].title}</strong>
+          <p>{flowSemantics[method].flow}</p>
+        </aside>
+      )}
       <section
         className="flow-canvas"
         data-testid="pipeline-flow"
@@ -168,9 +294,16 @@ export default function PipelineFlow({
           nodes={graph.nodes}
           edges={graph.edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodeClick={(_, node) => {
-            if (node.type === "task" && node.data.stepIndex !== undefined)
-              onSelect(node.data.stepIndex)
+            if (
+              (node.type === "task" || node.type === "session") &&
+              node.data.stepIndex !== undefined
+            )
+              onSelect(
+                node.data.stepIndex,
+                node.type === "task" ? node.data.detailId : undefined,
+              )
           }}
           onNodesChange={(changes) => {
             for (const change of changes) {
@@ -183,8 +316,14 @@ export default function PipelineFlow({
               const node = graph.nodes.find(
                 (candidate) => candidate.id === change.id,
               )
-              if (node?.type === "task" && node.data.stepIndex !== undefined)
-                onSelect(node.data.stepIndex)
+              if (
+                (node?.type === "task" || node?.type === "session") &&
+                node.data.stepIndex !== undefined
+              )
+                onSelect(
+                  node.data.stepIndex,
+                  node.type === "task" ? node.data.detailId : undefined,
+                )
             }
           }}
           nodesDraggable={false}
@@ -236,8 +375,13 @@ export default function PipelineFlow({
           <i className="planned" /> Chưa có trace
         </span>
         <small>
-          Bấm một bước để xem dữ liệu · kéo để di chuyển · dùng + / − để thu
-          phóng.
+          {method === "mac_sql"
+            ? "Selector → Decomposer → vòng lặp Refiner. Đỏ: SQL lỗi → LLM sửa; xanh dương: SQL đã sửa → chạy lại; xanh lá: chạy thành công → đánh giá với gold SQL. Nét đứt là nhánh chưa được ghi nhận. Bấm từng lần chạy / sửa để xem chi tiết."
+            : method === "din_sql"
+              ? "Không có vòng phản hồi SQLite. LLM tự kiểm tra một lần; vòng xanh (nếu có) chỉ là retry lời gọi LLM khi phát sinh lỗi."
+              : method === "dail_sql"
+                ? "Hai lượt cố định, không phải vòng sửa SQL theo lỗi thực thi. SQL sơ bộ → chọn lại ví dụ là phụ thuộc dữ liệu; vòng xanh (nếu có) chỉ là retry lời gọi LLM."
+                : "Hai tool nằm trong phiên Codex. Mũi tên nâu: agent gọi tool; xanh: kết quả về agent; đỏ: lỗi về agent. Số # cho biết thứ tự gọi thực tế. Agent có thể gọi tiếp cho đến khi chốt SQL; chấm gold SQL ở ngoài phiên."}
         </small>
       </div>
     </div>

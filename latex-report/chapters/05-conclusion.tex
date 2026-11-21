@@ -1,0 +1,16 @@
+\chapter{KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN}
+
+\section{Kết luận}
+
+Giá trị cốt lõi của \cite{ref1} là \emph{taxonomy} ICL (C0-C4), FT (bốn loại) cùng phân tích đánh đổi giữa LLM và phương pháp truyền thống, giữa các loại, giữa ICL và FT (Mục V). Thực nghiệm cho thấy EX của ba phương pháp gần nhau (81,43-82,79\%), nhưng DIN-SQL nhỉnh hơn ở Extra, DAIL-SQL vượt rõ ở EM, nên cần xét cả độ khó và hai loại độ đo.
+
+\section{Hướng phát triển}
+
+Ở Mục VI \cite{ref1}, nhóm tác giả nêu \emph{Extensions} (\emph{NL-to-code}, KBQA) và ba hướng sau:
+
+\begin{itemize}
+\item \textbf{Robustness in Real-world Applications:} \emph{What}: bền vững trước câu hỏi mơ hồ, từ đồng nghĩa, lỗi chính tả. \emph{How}: căn chỉnh LLM theo \emph{intention bias}, \emph{data augmentation}, mở rộng \emph{multi-lingual} (Spider-Vietnamese), hoặc \emph{two-stage pipeline}: mô hình truyền thống gắn cờ chỗ mơ hồ, LLM chỉ xử lý phần đó (Mục V-A1). \emph{Why}: khoảng 40\% SQL của ChatGPT thực thi sai khi câu hỏi có từ đồng nghĩa, thiếu chỉ dẫn \cite{ref1}.
+\item \textbf{Computational Efficiency:} \emph{What}: giảm chi phí, độ trễ. \emph{How}: lọc \emph{schema} theo câu hỏi (\emph{rule-based filter} bỏ cột thừa rồi LLM xếp hạng, Mục V-A2), giảm giai đoạn và lượt gọi API, tăng tốc giải mã như CLLMs \cite{ref9}. \emph{Why}: \emph{schema} lớn có thể vượt \emph{context window}, \emph{pipeline} nhiều giai đoạn tăng chi phí API \cite{ref1}.
+\item \textbf{Data Privacy and Interpretability:} \emph{What}: bảo vệ dữ liệu nội bộ, giải thích quá trình sinh SQL. \emph{How}: \emph{local fine-tuning} LLM mã nguồn mở; giải thích qua bước phân rã. \emph{Why}: API thương mại có thể làm rò rỉ dữ liệu, nhưng \emph{vanilla fine-tuning} chưa tốt và CodeS vẫn dùng ChatGPT tăng cường dữ liệu; tính giải thích chưa được bàn tới \cite{ref1}.
+\end{itemize}
+
